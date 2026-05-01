@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { resolve } from '$app/paths';
-	import logo from '$lib/assets/logo.png';
 
 	let searchQuery = $state('');
 
@@ -13,11 +12,13 @@
 		class="flex items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-6 py-3 shadow-lg backdrop-blur-xl"
 	>
 		<!-- BRAND -->
-		<div class="flex items-center gap-2 text-white/90">
-			<img src={logo} alt="MOTITV logo" class="h-10 w-10 object-contain" />
-
-			<span class="text-sm font-semibold tracking-widest"> MOTITV </span>
-		</div>
+		<a href={resolve('/')} class="flex h-0 items-center text-white/90">
+			<img
+				src="/logo.png"
+				alt="MOTITV logo"
+				class="h-45 w-45 -translate-y-1.5 cursor-pointer object-contain"
+			/>
+		</a>
 
 		<!-- NAV -->
 		<nav class="hidden items-center gap-7 text-sm text-white/60 md:flex">

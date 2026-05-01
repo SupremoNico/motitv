@@ -1,9 +1,9 @@
 <script lang="ts">
 	import './layout.css';
-	import logo from '$lib/assets/logo.png';
+	import icon from '$lib/assets/moti-icon.png';
 
 	let { children } = $props();
 </script>
 
-<svelte:head><link rel="icon" href={logo} /></svelte:head>
+<svelte:head><link rel="icon" href={icon} /></svelte:head>
 {@render children()}
