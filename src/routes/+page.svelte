@@ -169,12 +169,6 @@
 						>
 							▶ Play Now
 						</button>
-
-						<button
-							class="cursor-pointer rounded-xl border border-white/15 bg-white/5 px-8 py-4 font-medium text-white backdrop-blur-md transition-all hover:border-white/30 hover:bg-white/15 active:scale-95"
-						>
-							More Info
-						</button>
 					</div>
 				</div>
 			</div>
@@ -184,6 +178,7 @@
 				{#each Array.from({ length: featuredMovies.length }, (_, i) => i) as i (i)}
 					<button
 						onclick={() => goTo(i)}
+						aria-label={`Go to slide ${i + 1}`}
 						class="h-3 cursor-pointer rounded-full transition-all duration-300"
 						style:width={i === currentIndex ? '2.5rem' : '0.75rem'}
 						style:background={i === currentIndex ? 'white' : 'rgba(255,255,255,0.35)'}

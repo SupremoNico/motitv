@@ -1,10 +1,131 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 
-	let searchQuery = $state('');
+	import { searchMulti, normalizeMultiSearch, type SearchResult } from '$lib/tmdb';
 
-	const pathname = $derived($page.url.pathname);
+	const isActive = (path: string) => page.url.pathname === path;
+
+	// =========================
+	// STATE
+	// =========================
+	let searchQuery = $state('');
+	let searchResults = $state<SearchResult[]>([]);
+	let showDropdown = $state(false);
+	let loading = $state(false);
+
+	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	let controller: AbortController | null = null;
+
+	// prevents outdated responses overriding newest one
+	let requestId = 0;
+
+	// =========================
+	// SEARCH HANDLER
+	// =========================
+	function handleSearchInput(value: string) {
+		searchQuery = value;
+
+		const q = value.trim();
+
+		// reset debounce
+		if (debounceTimer) clearTimeout(debounceTimer);
+
+		// EMPTY STATE
+		if (!q) {
+			searchResults = [];
+			showDropdown = false;
+			loading = false;
+
+			controller?.abort();
+			return;
+		}
+
+		// show dropdown early (UX)
+		showDropdown = true;
+
+		// short input → no request
+		if (q.length < 2) {
+			searchResults = [];
+			loading = false;
+			return;
+		}
+
+		debounceTimer = setTimeout(() => {
+			runSearch(q);
+		}, 350);
+	}
+
+	// =========================
+	// CORE SEARCH (SAFE)
+	// =========================
+	async function runSearch(q: string) {
+		const currentId = ++requestId;
+
+		// cancel previous request
+		controller?.abort();
+		controller = new AbortController();
+
+		try {
+			loading = true;
+
+			const data = await searchMulti(q, 1, {
+				signal: controller.signal
+			});
+
+			// ignore outdated responses
+			if (currentId !== requestId) return;
+
+			searchResults = normalizeMultiSearch(data.results).slice(0, 6);
+			showDropdown = true;
+		} catch (err: unknown) {
+			if (err instanceof DOMException && err.name === 'AbortError') return;
+			console.error(err);
+		} finally {
+			if (currentId === requestId) {
+				loading = false;
+			}
+		}
+	}
+
+	// =========================
+	// KEYBOARD
+	// =========================
+	function handleKeyDown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			const q = searchQuery.trim();
+			if (!q) return;
+
+			if (debounceTimer) {
+				clearTimeout(debounceTimer);
+			}
+
+			controller?.abort();
+
+			showDropdown = false;
+
+			goto(resolve(`/search?q=${encodeURIComponent(q)}`));
+		}
+	}
+
+	// =========================
+	// SELECT ITEM
+	// =========================
+	function handleSelect(item: SearchResult) {
+		showDropdown = false;
+
+		goto(resolve(item.type === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`));
+	}
+
+	// =========================
+	// OUTSIDE CLICK SAFETY (optional improvement)
+	// =========================
+	function closeDropdown() {
+		setTimeout(() => {
+			showDropdown = false;
+		}, 150);
+	}
 </script>
 
 <header class="fixed top-4 left-1/2 z-50 w-[92%] -translate-x-1/2">
@@ -21,86 +142,52 @@
 		</a>
 
 		<!-- NAV -->
-		<nav class="hidden items-center gap-7 text-sm text-white/60 md:flex">
-			<!-- HOME -->
+		<nav class="hidden items-center gap-7 text-sm md:flex">
 			<a
 				href={resolve('/')}
-				class={`group flex items-center gap-2 rounded-full px-3 py-1.5 transition
-				${
-					pathname === '/'
-						? 'border border-white/20 bg-white/10 text-white backdrop-blur-md'
-						: 'text-white/60 hover:bg-white/5 hover:text-white'
-				}`}
+				class={`relative text-white/60 transition-colors duration-200 after:absolute
+			after:-bottom-1 after:left-0 after:h-[2px] after:w-full
+			after:origin-left after:scale-x-0 after:bg-white
+			after:transition-transform after:duration-300
+			after:content-[''] hover:text-white
+			hover:after:scale-x-100
+			${isActive('/') ? 'text-white after:scale-x-100' : ''}
+		`}
 			>
-				<svg
-					class={`h-4 w-4 transition ${pathname === '/' ? 'scale-110 opacity-100' : 'opacity-70'}`}
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.8"
-					viewBox="0 0 24 24"
-				>
-					<path d="M4 10.5L12 3l8 7.5V21a1 1 0 0 1-1 1h-5v-7H10v7H5a1 1 0 0 1-1-1v-10.5z" />
-				</svg>
 				Home
 			</a>
 
-			<!-- MOVIES -->
 			<a
 				href={resolve('/movies')}
-				class={`group flex items-center gap-2 rounded-full px-3 py-1.5 transition
-				${
-					pathname.startsWith('/movies')
-						? 'border border-white/20 bg-white/10 text-white backdrop-blur-md'
-						: 'text-white/60 hover:bg-white/5 hover:text-white'
-				}`}
+				class={`relative text-white/60 transition-colors duration-200 after:absolute
+			after:-bottom-1 after:left-0 after:h-[2px] after:w-full
+			after:origin-left after:scale-x-0 after:bg-white
+			after:transition-transform after:duration-300
+			after:content-[''] hover:text-white
+			hover:after:scale-x-100
+			${isActive('/movies') ? 'text-white after:scale-x-100' : ''}
+		`}
 			>
-				<svg
-					class={`h-4 w-4 transition ${
-						pathname.startsWith('/movies')
-							? 'scale-110 opacity-100'
-							: 'opacity-70 group-hover:opacity-100'
-					}`}
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.8"
-					viewBox="0 0 24 24"
-				>
-					<rect x="3" y="5" width="18" height="14" rx="2" />
-					<path d="M10 9l5 3-5 3V9z" />
-				</svg>
 				Movies
 			</a>
 
-			<!-- SERIES -->
 			<a
 				href={resolve('/series')}
-				class={`group flex items-center gap-2 rounded-full px-3 py-1.5 transition
-				${
-					pathname.startsWith('/series')
-						? 'border border-white/20 bg-white/10 text-white backdrop-blur-md'
-						: 'text-white/60 hover:bg-white/5 hover:text-white'
-				}`}
+				class={`relative text-white/60 transition-colors duration-200 after:absolute
+			after:-bottom-1 after:left-0 after:h-[2px] after:w-full
+			after:origin-left after:scale-x-0 after:bg-white
+			after:transition-transform after:duration-300
+			after:content-[''] hover:text-white
+			hover:after:scale-x-100
+			${isActive('/series') ? 'text-white after:scale-x-100' : ''}
+		`}
 			>
-				<svg
-					class={`h-4 w-4 transition ${
-						pathname.startsWith('/series')
-							? 'scale-110 opacity-100'
-							: 'opacity-70 group-hover:opacity-100'
-					}`}
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.8"
-					viewBox="0 0 24 24"
-				>
-					<path d="M7 4h10a2 2 0 0 1 2 2v12H5V6a2 2 0 0 1 2-2z" />
-					<path d="M9 8h6" />
-				</svg>
 				Series
 			</a>
 		</nav>
 
 		<!-- SEARCH -->
-		<div class="flex items-center">
+		<div class="relative flex items-center">
 			<div class="relative">
 				<svg
 					class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-white/50"
@@ -113,12 +200,66 @@
 					<path d="M20 20l-3-3" />
 				</svg>
 
+				<!-- INPUT -->
 				<input
 					type="text"
-					bind:value={searchQuery}
-					placeholder="Search for movies, series..."
-					class="w-56 rounded-full border border-white/10 bg-white/5 py-2 pr-3 pl-9 text-sm text-white placeholder-white/40 backdrop-blur-md transition outline-none focus:border-white/30 focus:bg-white/10 md:w-64"
+					value={searchQuery}
+					oninput={(e) => handleSearchInput((e.target as HTMLInputElement).value)}
+					onkeydown={handleKeyDown}
+					onfocus={() => searchResults.length && (showDropdown = true)}
+					onblur={closeDropdown}
+					placeholder="Search movies, series..."
+					class="w-56 rounded-full border border-white/10 bg-white/5 py-2 pr-3 pl-9 text-sm text-white placeholder-white/40 backdrop-blur-md outline-none focus:border-white/30 focus:bg-white/10 md:w-64"
 				/>
+
+				<!-- DROPDOWN -->
+				{#if showDropdown}
+					<div
+						class="absolute top-full left-0 z-50 mt-1 w-full overflow-hidden rounded-3xl border border-white/5 bg-black/70 shadow-[0_25px_80px_rgba(0,0,0,0.9)] backdrop-blur-2xl"
+					>
+						{#if loading}
+							<div class="px-4 py-4 text-sm text-white/60">Searching...</div>
+						{:else if searchResults.length === 0}
+							<div class="px-4 py-4 text-sm text-white/60">No results found</div>
+						{:else}
+							{#each searchResults as item (item.id)}
+								<button
+									type="button"
+									onclick={() => handleSelect(item)}
+									class="flex w-full items-center gap-3 border-b border-white/5 px-3 py-3 text-left hover:bg-white/5"
+								>
+									<img
+										src={item.poster
+											? `https://image.tmdb.org/t/p/w92${item.poster}`
+											: '/placeholder.jpg'}
+										alt={item.title}
+										class="h-14 w-10 rounded-lg border border-white/10 object-cover"
+									/>
+
+									<div class="min-w-0 flex-1">
+										<p class="truncate text-sm font-semibold text-white/90">
+											{item.title}
+										</p>
+
+										<div class="mt-1 flex items-center gap-2 text-xs text-white/40">
+											<span class="uppercase">{item.type}</span>
+											<span>•</span>
+											<span>{item.date?.slice(0, 4) || 'N/A'}</span>
+										</div>
+									</div>
+								</button>
+							{/each}
+
+							<button
+								type="button"
+								onclick={() => goto(resolve(`/search?q=${encodeURIComponent(searchQuery.trim())}`))}
+								class="w-full bg-white/5 px-4 py-3 text-center text-sm text-white/70 hover:bg-white/10 hover:text-white"
+							>
+								View all results
+							</button>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>

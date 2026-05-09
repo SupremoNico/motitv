@@ -36,9 +36,7 @@
 			directors = credits.crew.filter((c) => c.job === 'Director');
 
 			const videos = await getMovieVideos(id);
-			const trailer = videos.results.find(
-				(v) => v.type === 'Trailer' && v.site === 'YouTube'
-			);
+			const trailer = videos.results.find((v) => v.type === 'Trailer' && v.site === 'YouTube');
 
 			trailerKey = trailer?.key ?? null;
 		})();
@@ -60,7 +58,7 @@
 {#if movie}
 	<!-- 🌌 BACKGROUND WRAPPER (NOW HANDLES BACKDROP) -->
 	<div
-		class="relative min-h-screen bg-black text-white bg-cover bg-center bg-no-repeat"
+		class="relative min-h-screen bg-black bg-cover bg-center bg-no-repeat text-white"
 		style={`background-image: url(https://image.tmdb.org/t/p/original${movie.backdrop_path})`}
 	>
 		<!-- overlay -->
@@ -77,7 +75,7 @@
 							allow="autoplay; encrypted-media"
 							title="Movie Player"
 							allowfullscreen
-						/>
+						></iframe>
 					</div>
 				</div>
 			</div>

@@ -29,7 +29,6 @@
 <!-- 🌌 DETAILS ONLY (NO BACKDROP) -->
 <div class="relative text-white">
 	<div class="mx-auto max-w-6xl px-6 py-10">
-
 		<!-- 🎞 TRAILER -->
 		{#if showTrailer}
 			<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
@@ -43,7 +42,8 @@
 							allow="autoplay; encrypted-media"
 							title="Trailer"
 							allowfullscreen
-						/>
+						>
+						</iframe>
 					</div>
 				</div>
 			</div>
@@ -76,7 +76,9 @@
 		{#if movie.genres?.length}
 			<div class="mt-4 flex flex-wrap gap-2">
 				{#each movie.genres as genre (genre.id)}
-					<span class="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs backdrop-blur-md">
+					<span
+						class="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs backdrop-blur-md"
+					>
 						{genre.name}
 					</span>
 				{/each}
@@ -92,8 +94,14 @@
 
 				<div class="flex flex-wrap gap-4">
 					{#each directors as director (director.id)}
-						<div class="flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-lg hover:bg-white/10">
-							<img src={imageUrl(director.profile_path)} class="h-12 w-12 rounded-full object-cover" />
+						<div
+							class="flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-lg hover:bg-white/10"
+						>
+							<img
+								alt={director.name}
+								src={imageUrl(director.profile_path)}
+								class="h-12 w-12 rounded-full object-cover"
+							/>
 							<div>
 								<p class="text-sm font-semibold">{director.name}</p>
 								<p class="text-xs text-white/50">Director</p>
@@ -111,8 +119,14 @@
 
 				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
 					{#each cast as actor (actor.id)}
-						<div class="rounded-xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-lg hover:bg-white/10">
-							<img src={imageUrl(actor.profile_path)} class="mx-auto h-20 w-20 rounded-full object-cover" />
+						<div
+							class="rounded-xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-lg hover:bg-white/10"
+						>
+							<img
+								alt={actor.name}
+								src={imageUrl(actor.profile_path)}
+								class="mx-auto h-20 w-20 rounded-full object-cover"
+							/>
 							<p class="mt-3 text-sm font-semibold">{actor.name}</p>
 							<p class="text-xs text-white/50">{actor.character}</p>
 						</div>
@@ -120,6 +134,5 @@
 				</div>
 			</div>
 		{/if}
-
 	</div>
 </div>

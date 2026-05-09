@@ -41,7 +41,8 @@
 							allow="autoplay; encrypted-media"
 							title="Trailer"
 							allowfullscreen
-						/>
+						>
+						</iframe>
 					</div>
 				</div>
 			</div>
@@ -91,7 +92,7 @@
 				<div class="flex flex-wrap gap-4">
 					{#each creators as creator (creator.id)}
 						<div class="flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-lg hover:bg-white/10">
-							<img src={imageUrl(creator.profile_path)} class="h-12 w-12 rounded-full object-cover" />
+							<img alt={creator.name} src={imageUrl(creator.profile_path)} class="h-12 w-12 rounded-full object-cover" />
 							<div>
 								<p class="text-sm font-semibold">{creator.name}</p>
 								<p class="text-xs text-white/50">{creator.job}</p>
@@ -110,7 +111,7 @@
 				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
 					{#each cast as actor (actor.id)}
 						<div class="rounded-xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-lg hover:bg-white/10">
-							<img src={imageUrl(actor.profile_path)} class="mx-auto h-20 w-20 rounded-full object-cover" />
+							<img alt={actor.name} src={imageUrl(actor.profile_path)} class="mx-auto h-20 w-20 rounded-full object-cover" />
 							<p class="mt-3 text-sm font-semibold">{actor.name}</p>
 							<p class="text-xs text-white/50">{actor.character}</p>
 						</div>

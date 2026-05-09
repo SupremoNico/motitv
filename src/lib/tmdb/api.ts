@@ -1,163 +1,23 @@
-const API_READ_ACCESS_TOKEN = import.meta.env.VITE_TMDB_READ_ACCESS_TOKEN as string;
+// src/lib/tmdb/api.ts
 
-const BASE_URL = 'https://api.themoviedb.org/3';
+import type {
+	Genre,
+	Movie,
+	TVSeries,
+	MovieDetails,
+	SeriesDetails,
+	TMDBResponse,
+	MovieVideosResponse,
+	TVVideosResponse,
+	MovieCredits,
+	TVCredits,
+	MovieImages,
+	HeroMedia,
+	MultiSearchItem,
+	SearchResult
+} from './types';
 
-/* =========================
-   FETCH WRAPPER
-========================= */
-
-async function tmdbFetch<T>(url: string, params?: Record<string, string | number>): Promise<T> {
-	const query = params
-		? '?' + new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString()
-		: '';
-
-	const res = await fetch(`${BASE_URL}${url}${query}`, {
-		headers: {
-			Authorization: `Bearer ${API_READ_ACCESS_TOKEN}`,
-			accept: 'application/json'
-		}
-	});
-
-	if (!res.ok) {
-		throw new Error(`TMDB request failed: ${res.status} ${res.statusText}`);
-	}
-
-	return (await res.json()) as T;
-}
-
-/* =========================
-   TYPES
-========================= */
-
-export type Movie = {
-	id: number;
-	title: string;
-	overview: string;
-	poster_path: string;
-	backdrop_path: string;
-	vote_average: number;
-	release_date: string;
-	genre_ids: number[];
-};
-
-export type TVSeries = {
-	id: number;
-	name: string;
-	overview: string;
-	poster_path: string;
-	backdrop_path: string;
-	vote_average: number;
-	first_air_date: string;
-	genre_ids: number[];
-};
-
-/* =========================
-   GENERIC RESPONSE
-========================= */
-
-export type TMDBResponse<T> = {
-	page: number;
-	results: T[];
-	total_pages: number;
-	total_results: number;
-};
-
-export type Genre = {
-	id: number;
-	name: string;
-};
-
-/* =========================
-   MOVIE DETAILS
-========================= */
-
-export type MovieDetails = {
-	id: number;
-	title: string;
-	overview: string;
-	backdrop_path: string;
-	release_date: string;
-	vote_average: number;
-	vote_count: number;
-	runtime: number;
-	genres?: Genre[];
-};
-
-/* =========================
-   SERIES DETAILS (NEW)
-========================= */
-
-export type SeriesDetails = {
-	id: number;
-	name: string;
-	overview: string;
-	backdrop_path: string;
-	poster_path: string;
-	first_air_date: string;
-	vote_average: number;
-	vote_count: number;
-
-	number_of_seasons: number;
-	number_of_episodes: number;
-
-	episode_run_time: number[];
-
-	genres?: Genre[];
-
-	seasons: {
-		id: number;
-		name: string;
-		season_number: number;
-		episode_count: number;
-		poster_path: string | null;
-	}[];
-};
-
-/* =========================
-   VIDEOS
-========================= */
-
-export type Video = {
-	id: string;
-	key: string;
-	site: 'YouTube' | 'Vimeo';
-	type: string;
-	name: string;
-};
-
-export type MovieVideosResponse = {
-	results: Video[];
-};
-
-export type TVVideosResponse = {
-	results: Video[];
-};
-
-/* =========================
-   CREDITS
-========================= */
-
-export type CastMember = {
-	id: number;
-	name: string;
-	character: string;
-	profile_path: string | null;
-};
-
-export type CrewMember = {
-	id: number;
-	name: string;
-	job: string;
-	department: string;
-	profile_path: string | null;
-};
-
-export type MovieCredits = {
-	cast: CastMember[];
-	crew: CrewMember[];
-};
-
-export type TVCredits = MovieCredits;
+import { tmdbFetch } from './client';
 
 /* =========================
    GENRES CACHE
@@ -170,6 +30,7 @@ export async function getGenres(): Promise<Genre[]> {
 	if (genresCache) return genresCache;
 
 	const data = await tmdbFetch<{ genres: Genre[] }>('/genre/movie/list');
+
 	genresCache = data.genres;
 
 	return genresCache;
@@ -267,7 +128,7 @@ export function getMovieCredits(id: string) {
 }
 
 /* =========================
-   SERIES DETAILS (NEW)
+   SERIES DETAILS
 ========================= */
 
 export function getSeriesDetails(id: string) {
@@ -283,23 +144,49 @@ export function getSeriesVideos(id: string) {
 }
 
 /* =========================
-   HERO MEDIA
+   SEARCH
 ========================= */
 
-export type MovieLogo = {
-	file_path: string;
-	iso_639_1: string | null;
-};
+export function searchMulti(
+	query: string,
+	page: number = 1,
+	options?: { signal?: AbortSignal }
+) {
+	return tmdbFetch<TMDBResponse<MultiSearchItem>>(
+		'/search/multi',
+		{
+			query,
+			page,
+		},
+		options
+	);
+}
 
-export type MovieImages = {
-	logos: MovieLogo[];
-	backdrops: { file_path: string }[];
-};
+export function normalizeMultiSearch(items: MultiSearchItem[]): SearchResult[] {
+	return items
+		.filter((item) => item.media_type === 'movie' || item.media_type === 'tv')
+		.map((item) => ({
+			id: item.id,
 
-export type HeroMedia = {
-	logo: string | null;
-	backdrop: string | null;
-};
+			type: item.media_type as 'movie' | 'tv',
+
+			title: item.title || item.name || 'Untitled',
+
+			date: item.release_date || item.first_air_date || '',
+
+			poster: item.poster_path,
+
+			backdrop: item.backdrop_path,
+
+			rating: item.vote_average,
+
+			overview: item.overview
+		}));
+}
+
+/* =========================
+   HERO MEDIA
+========================= */
 
 export async function getHeroMedia(movieId: number): Promise<HeroMedia> {
 	try {
@@ -316,6 +203,7 @@ export async function getHeroMedia(movieId: number): Promise<HeroMedia> {
 			logo: selectedLogo?.file_path
 				? `https://image.tmdb.org/t/p/w500${selectedLogo.file_path}`
 				: null,
+
 			backdrop: images.backdrops?.[0]?.file_path
 				? `https://image.tmdb.org/t/p/original${images.backdrops[0].file_path}`
 				: null

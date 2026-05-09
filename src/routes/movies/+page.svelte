@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Navbar from '$lib/components/Navbar.svelte';
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import { getAllMovies, loadGenresCached } from '$lib/tmdb';
 	import type { Movie, Genre } from '$lib/tmdb';
 	import { goto } from '$app/navigation';
@@ -15,11 +15,10 @@
 
 	let activeCategory = $state<number>(0);
 
-	// ✅ FIX: separate strict fetch lock
-	let isFetching = $state(false);
-
 	let observer: IntersectionObserver | null = null;
 	let sentinel: HTMLDivElement | null = null;
+
+	let requestInFlight = false;
 
 	const skeletons = Array.from({ length: 12 }, (_, i) => i);
 
@@ -30,28 +29,44 @@
 		try {
 			genres = await loadGenresCached();
 		} catch (err) {
-			console.error('Failed to load genres', err);
+			console.error(err);
 		}
 	}
 
 	const categories = $derived([{ id: 0, name: 'All' }, ...genres]);
 
 	// =========================
-	// FILTERED MOVIES
+	// RESET ON CATEGORY CHANGE
+	// =========================
+	function resetAndReload() {
+		movies = [];
+		page = 1;
+		hasMore = true;
+	}
+
+	$effect(() => {
+		resetAndReload();
+		loadMovies();
+	});
+
+	// =========================
+	// FILTER
 	// =========================
 	const filteredMovies = $derived(
 		activeCategory === 0
 			? movies
-			: movies.filter((m) => m.genre_ids?.includes(activeCategory))
+			: movies.filter((m) =>
+					Array.isArray(m.genre_ids) ? m.genre_ids.includes(Number(activeCategory)) : false
+				)
 	);
 
 	// =========================
-	// LOAD MOVIES (FIXED)
+	// LOAD MOVIES
 	// =========================
 	async function loadMovies() {
-		if (loading || isFetching || !hasMore) return;
+		if (requestInFlight || !hasMore) return;
 
-		isFetching = true;
+		requestInFlight = true;
 		loading = true;
 
 		try {
@@ -72,12 +87,12 @@
 			console.error(err);
 		} finally {
 			loading = false;
-			isFetching = false;
+			requestInFlight = false;
 		}
 	}
 
 	// =========================
-	// OBSERVER (FIXED)
+	// OBSERVER SETUP (FIXED)
 	// =========================
 	function setupObserver() {
 		if (!sentinel) return;
@@ -87,19 +102,9 @@
 		observer = new IntersectionObserver(
 			async ([entry]) => {
 				if (!entry.isIntersecting) return;
-				if (isFetching || loading || !hasMore) return;
-
-				// prevent repeated triggers
-				observer?.unobserve(entry.target);
+				if (requestInFlight || !hasMore) return;
 
 				await loadMovies();
-
-				// re-attach safely after update
-				queueMicrotask(() => {
-					if (sentinel && hasMore) {
-						observer?.observe(sentinel);
-					}
-				});
 			},
 			{
 				rootMargin: '300px',
@@ -110,13 +115,19 @@
 		observer.observe(sentinel);
 	}
 
+	// re-attach observer whenever sentinel is ready
+	$effect(() => {
+		if (!sentinel) return;
+		tick().then(setupObserver);
+	});
+
 	// =========================
-	// LIFECYCLE
+	// INIT
 	// =========================
 	onMount(async () => {
 		await loadGenres();
 		await loadMovies();
-
+		await tick();
 		setupObserver();
 	});
 
@@ -130,7 +141,7 @@
 <div class="min-h-screen bg-black px-8 pt-24 text-white md:px-16">
 	<h1 class="mb-6 text-2xl font-bold tracking-wide">Movies</h1>
 
-	<!-- CATEGORY CAROUSEL -->
+	<!-- CATEGORY -->
 	<div class="mb-6 overflow-x-auto">
 		<div class="flex w-max gap-2">
 			{#each categories as cat (cat.id)}
@@ -148,7 +159,7 @@
 		</div>
 	</div>
 
-	<!-- MOVIE GRID -->
+	<!-- GRID (ALWAYS MOUNTED) -->
 	<div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
 		{#each filteredMovies as movie (movie.id)}
 			<div
@@ -161,20 +172,15 @@
 					alt={movie.title}
 					class="w-full object-cover"
 					loading="lazy"
-					onerror={(e: Event) => {
-						const img = e.currentTarget as HTMLImageElement;
-						img.src = '/placeholder.jpg';
-					}}
 				/>
 
-				<!-- HOVER OVERLAY -->
 				<div
-					class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/50 p-4 text-center opacity-0 backdrop-blur-md transition-all duration-300 group-hover:opacity-100"
+					class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/50 p-4 text-center opacity-0 backdrop-blur-md transition group-hover:opacity-100"
 				>
 					<button
 						onclick={() => goto(resolve(`/movie/${movie.id}`))}
-						class="flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-white/20 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-125 hover:bg-white/30 active:scale-110"
-						aria-label="Play movie"
+						aria-label={`View details for ${movie.title}`}
+						class="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-md transition hover:scale-125 hover:bg-white/30"
 					>
 						<svg class="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
 							<path
@@ -183,17 +189,7 @@
 						</svg>
 					</button>
 
-					<p class="line-clamp-2 text-xs font-semibold text-white">
-						{movie.title}
-					</p>
-
-					<div class="flex items-center gap-3 text-[10px] text-white/70">
-						<span class="font-medium text-yellow-400">
-							★ {movie.vote_average?.toFixed(1)}
-						</span>
-						<span>•</span>
-						<span>{movie.release_date?.slice(0, 4)}</span>
-					</div>
+					<p class="text-xs font-semibold">{movie.title}</p>
 				</div>
 			</div>
 		{/each}
@@ -207,7 +203,7 @@
 		{/if}
 	</div>
 
-	<!-- SENTINEL -->
+	<!-- SENTINEL (OUTSIDE GRID LOGIC) -->
 	<div bind:this={sentinel} class="h-10 w-full"></div>
 
 	{#if !hasMore}
