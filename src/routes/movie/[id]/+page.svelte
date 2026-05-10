@@ -71,7 +71,7 @@
 					<div class="relative h-0 pb-[56.25%]">
 						<iframe
 							class="absolute inset-0 h-full w-full"
-							src={`https://vidlink.pro/movie/${movie.id}?autoplay=false&title=false&poster=true`}
+							src={`https://vidnest.fun/movie/${movie.id}`}
 							title="Movie Player"
 							allowfullscreen
 						></iframe>

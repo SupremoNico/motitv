@@ -306,7 +306,7 @@
 						<iframe
 							class="absolute inset-0 h-full w-full"
 							title="Episode Player"
-							src={`https://vidlink.pro/tv/${series.id}/${season}/${episode}?autoplay=false&title=false&poster=true&nextbutton=true`}
+							src={`https://vidnest.fun/tv/${series.id}/${season}/${episode}`}
 							allowfullscreen
 						></iframe>
 					</div>
