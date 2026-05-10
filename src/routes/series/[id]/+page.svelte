@@ -305,9 +305,10 @@
 					<div class="relative h-0 pb-[56.25%]">
 						<iframe
 							class="absolute inset-0 h-full w-full"
-							src={`https://vidcore.net/tv/${series.id}/${season}/${episode}?theme=B9E8FC&hideServer=true&chromecast=false&title=false`}
+							title="Episode Player"
+							src={`https://vidlink.pro/tv/${series.id}/${season}/${episode}?autoplay=false&title=false&poster=true&nextbutton=true`}
 							allowfullscreen
-						/>
+						></iframe>
 					</div>
 				</div>
 			</div>

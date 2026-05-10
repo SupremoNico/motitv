@@ -71,8 +71,7 @@
 					<div class="relative h-0 pb-[56.25%]">
 						<iframe
 							class="absolute inset-0 h-full w-full"
-							src={`https://vidcore.net/movie/${movie.id}?autoPlay=false&theme=B9E8FC&hideServer=true&chromecast=false&title=false`}
-							allow="autoplay; encrypted-media"
+							src={`https://vidlink.pro/movie/${movie.id}?autoplay=false&title=false&poster=true`}
 							title="Movie Player"
 							allowfullscreen
 						></iframe>
