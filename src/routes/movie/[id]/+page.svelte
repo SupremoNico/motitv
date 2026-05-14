@@ -71,8 +71,9 @@
 					<div class="relative h-0 pb-[56.25%]">
 						<iframe
 							class="absolute inset-0 h-full w-full"
-							src={`https://vidnest.fun/movie/${movie.id}`}
+							src={`https://embed.filmu.in/movie/${movie.id}`}
 							title="Movie Player"
+							frameborder="0"
 							allowfullscreen
 						></iframe>
 					</div>

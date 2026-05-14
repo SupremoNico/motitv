@@ -21,6 +21,7 @@
 	let currentEpisodeTitle = $state('');
 	let currentSeasonName = $state('');
 	let episodesOpen = $state(false);
+	let	showHeader = $state(false);
 
 	const id = $derived($page.params.id);
 
@@ -119,14 +120,15 @@
 			<div class="relative isolate mx-auto max-w-6xl px-6 pt-24">
 				<div class="overflow-hidden rounded-xl border border-white/10 shadow-2xl">
 					<!-- HEADER (RESTORED UI) -->
-					<div
-						class="flex flex-col gap-3 bg-white/5 p-4 md:flex-row md:items-center md:justify-between"
-					>
-						<!-- 🎬 SEASON DROPDOWN (RESTORED GLASS UI) -->
-						<div class="relative min-w-[200px]" use:clickOutside={() => (seasonOpen = false)}>
-							<button
-								onclick={() => (seasonOpen = !seasonOpen)}
-								class="
+					{#if showHeader}
+						<div
+							class="flex flex-col gap-3 bg-white/5 p-4 md:flex-row md:items-center md:justify-between"
+						>
+							<!-- 🎬 SEASON DROPDOWN (RESTORED GLASS UI) -->
+							<div class="relative min-w-200px" use:clickOutside={() => (seasonOpen = false)}>
+								<button
+									onclick={() => (seasonOpen = !seasonOpen)}
+									class="
 									relative w-full rounded-xl
 									border border-white/20
 									bg-white/10
@@ -136,41 +138,41 @@
 									transition-all duration-200
 									hover:border-white/30 hover:bg-white/15
 								"
-								class:rounded-b-none={seasonOpen}
-							>
-								<!-- <p class="text-xs text-white/60">Season</p> -->
+									class:rounded-b-none={seasonOpen}
+								>
+									<!-- <p class="text-xs text-white/60">Season</p> -->
 
-								<div class="flex items-center justify-between">
-									<span class="font-semibold">
-										{series.seasons.find((s) => s.season_number === season)?.name ??
-											`Season ${season}`}
-									</span>
+									<div class="flex items-center justify-between">
+										<span class="font-semibold">
+											{series.seasons.find((s) => s.season_number === season)?.name ??
+												`Season ${season}`}
+										</span>
 
-									<span class="text-white/70">
-										{#if seasonOpen}
-											<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-												<path
-													fill-rule="evenodd"
-													d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.94a.75.75 0 11-1.08-1.04l4.24-4.5a.75.75 0 011.08 0l4.24 4.5a.75.75 0 01-.02 1.06z"
-													clip-rule="evenodd"
-												/>
-											</svg>
-										{:else}
-											<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-												<path
-													fill-rule="evenodd"
-													d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
-													clip-rule="evenodd"
-												/>
-											</svg>
-										{/if}
-									</span>
-								</div>
-							</button>
+										<span class="text-white/70">
+											{#if seasonOpen}
+												<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+													<path
+														fill-rule="evenodd"
+														d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.94a.75.75 0 11-1.08-1.04l4.24-4.5a.75.75 0 011.08 0l4.24 4.5a.75.75 0 01-.02 1.06z"
+														clip-rule="evenodd"
+													/>
+												</svg>
+											{:else}
+												<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+													<path
+														fill-rule="evenodd"
+														d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
+														clip-rule="evenodd"
+													/>
+												</svg>
+											{/if}
+										</span>
+									</div>
+								</button>
 
-							{#if seasonOpen}
-								<div
-									class="
+								{#if seasonOpen}
+									<div
+										class="
 			absolute top-full left-0 z-50
 			max-h-64 w-full overflow-y-auto
 
@@ -182,49 +184,49 @@
 
 			shadow-black/70 backdrop-blur-xl
 		"
-								>
-									{#each series.seasons as s (s.season_number)}
-										{#if s.season_number}
-											<button
-												onclick={() => {
-													season = s.season_number;
-													episode = 1;
-													seasonOpen = false;
-												}}
-												class="
+									>
+										{#each series.seasons as s (s.season_number)}
+											{#if s.season_number}
+												<button
+													onclick={() => {
+														season = s.season_number;
+														episode = 1;
+														seasonOpen = false;
+													}}
+													class="
 						w-full px-3 py-2 text-left text-sm
 						text-white
 						transition
 						hover:bg-white/10
 					"
-											>
-												<div class="flex items-center justify-between">
-													<span>{s.name}</span>
-													<span class="text-xs text-white/70">
-														{s.episode_count} eps
-													</span>
-												</div>
-											</button>
-										{/if}
-									{/each}
-								</div>
-							{/if}
-						</div>
+												>
+													<div class="flex items-center justify-between">
+														<span>{s.name}</span>
+														<span class="text-xs text-white/70">
+															{s.episode_count} eps
+														</span>
+													</div>
+												</button>
+											{/if}
+										{/each}
+									</div>
+								{/if}
+							</div>
 
-						<!-- CENTER TITLE -->
-						<div class="text-center">
-							<p class="text-xs text-white/60">{currentSeasonName}</p>
-							<p class="text-base font-semibold">
-								Episode {episode}: {currentEpisodeTitle}
-							</p>
-						</div>
+							<!-- CENTER TITLE -->
+							<div class="text-center">
+								<p class="text-xs text-white/60">{currentSeasonName}</p>
+								<p class="text-base font-semibold">
+									Episode {episode}: {currentEpisodeTitle}
+								</p>
+							</div>
 
-						<!-- 🎞 EPISODES DROPDOWN (MATCH SEASON STYLE) -->
-						<div class="relative min-w-[200px]" use:clickOutside={() => (episodesOpen = false)}>
-							<!-- Trigger -->
-							<button
-								onclick={() => (episodesOpen = !episodesOpen)}
-								class="
+							<!-- 🎞 EPISODES DROPDOWN (MATCH SEASON STYLE) -->
+							<div class="relative min-w-200px" use:clickOutside={() => (episodesOpen = false)}>
+								<!-- Trigger -->
+								<button
+									onclick={() => (episodesOpen = !episodesOpen)}
+									class="
 			relative w-full rounded-xl
 			border border-white/20
 			bg-white/10
@@ -234,39 +236,39 @@
 			transition-all duration-200
 			hover:border-white/30 hover:bg-white/15
 		"
-								class:rounded-b-none={episodesOpen}
-							>
-								<div class="flex items-center justify-between">
-									<span class="font-semibold">
-										Episode {episode}
-									</span>
+									class:rounded-b-none={episodesOpen}
+								>
+									<div class="flex items-center justify-between">
+										<span class="font-semibold">
+											Episode {episode}
+										</span>
 
-									<span class="text-white/70">
-										{#if episodesOpen}
-											<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-												<path
-													fill-rule="evenodd"
-													d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.94a.75.75 0 11-1.08-1.04l4.24-4.5a.75.75 0 011.08 0l4.24 4.5a.75.75 0 01-.02 1.06z"
-													clip-rule="evenodd"
-												/>
-											</svg>
-										{:else}
-											<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-												<path
-													fill-rule="evenodd"
-													d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
-													clip-rule="evenodd"
-												/>
-											</svg>
-										{/if}
-									</span>
-								</div>
-							</button>
+										<span class="text-white/70">
+											{#if episodesOpen}
+												<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+													<path
+														fill-rule="evenodd"
+														d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832l-3.71 3.94a.75.75 0 11-1.08-1.04l4.24-4.5a.75.75 0 011.08 0l4.24 4.5a.75.75 0 01-.02 1.06z"
+														clip-rule="evenodd"
+													/>
+												</svg>
+											{:else}
+												<svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+													<path
+														fill-rule="evenodd"
+														d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
+														clip-rule="evenodd"
+													/>
+												</svg>
+											{/if}
+										</span>
+									</div>
+								</button>
 
-							<!-- Dropdown -->
-							{#if episodesOpen}
-								<div
-									class="
+								<!-- Dropdown -->
+								{#if episodesOpen}
+									<div
+										class="
 				absolute top-full left-0 z-50
 				max-h-64 w-full overflow-y-auto
 
@@ -277,36 +279,37 @@
 				shadow-black/70
 				backdrop-blur-xl
 			"
-								>
-									{#each episodes as ep (ep.episode_number)}
-										<button
-											onclick={() => {
-												episode = ep.episode_number;
-												currentEpisodeTitle = ep.name;
-												episodesOpen = false;
-											}}
-											class="
+									>
+										{#each episodes as ep (ep.episode_number)}
+											<button
+												onclick={() => {
+													episode = ep.episode_number;
+													currentEpisodeTitle = ep.name;
+													episodesOpen = false;
+												}}
+												class="
 						w-full px-3 py-2 text-left text-sm text-white
 						transition hover:bg-white/10
 						{episode === ep.episode_number ? 'bg-white/10' : ''}
 					"
-										>
-											<div class="flex items-center justify-between">
-												<span>Episode {ep.episode_number}</span>
-											</div>
-										</button>
-									{/each}
-								</div>
-							{/if}
+											>
+												<div class="flex items-center justify-between">
+													<span>Episode {ep.episode_number}</span>
+												</div>
+											</button>
+										{/each}
+									</div>
+								{/if}
+							</div>
 						</div>
-					</div>
+					{/if}
 
 					<!-- PLAYER -->
 					<div class="relative h-0 pb-[56.25%]">
 						<iframe
 							class="absolute inset-0 h-full w-full"
 							title="Episode Player"
-							src={`https://vidnest.fun/tv/${series.id}/${season}/${episode}`}
+							src={`https://embed.filmu.in/tv/${series.id}/${season}/${episode}`}
 							allowfullscreen
 						></iframe>
 					</div>

@@ -62,6 +62,20 @@ export function getAllMovies(page = 1) {
 	return tmdbFetch<TMDBResponse<Movie>>('/discover/movie', { page });
 }
 
+export function getMoviesByGenres(
+	genres: number[] | string,
+	page = 1
+) {
+	const with_genres = Array.isArray(genres)
+		? genres.join(',')
+		: genres;
+
+	return tmdbFetch<TMDBResponse<Movie>>('/discover/movie', {
+		page,
+		with_genres
+	});
+}
+
 export function getPopularMovies(page = 1) {
 	return tmdbFetch<TMDBResponse<Movie>>('/movie/popular', { page });
 }
