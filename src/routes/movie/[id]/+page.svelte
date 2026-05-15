@@ -75,6 +75,7 @@
 							title="Movie Player"
 							frameborder="0"
 							allowfullscreen
+							allow="autoplay; encrypted-media; picture-in-picture"
 						></iframe>
 					</div>
 				</div>

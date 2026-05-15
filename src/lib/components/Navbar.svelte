@@ -18,52 +18,43 @@
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 	let controller: AbortController | null = null;
 
-	// prevents outdated responses overriding newest one
 	let requestId = 0;
+	let ignoreBlur = false;
 
 	// =========================
-	// SEARCH HANDLER
+	// SEARCH INPUT
 	// =========================
 	function handleSearchInput(value: string) {
 		searchQuery = value;
 
 		const q = value.trim();
 
-		// reset debounce
 		if (debounceTimer) clearTimeout(debounceTimer);
 
-		// EMPTY STATE
 		if (!q) {
 			searchResults = [];
 			showDropdown = false;
 			loading = false;
-
 			controller?.abort();
 			return;
 		}
 
-		// show dropdown early (UX)
 		showDropdown = true;
 
-		// short input → no request
 		if (q.length < 2) {
 			searchResults = [];
-			loading = false;
 			return;
 		}
 
-		debounceTimer = setTimeout(() => {
-			runSearch(q);
-		}, 350);
+		debounceTimer = setTimeout(() => runSearch(q), 300);
 	}
 
 	// =========================
-	// CORE SEARCH (SAFE)
+	// SEARCH CORE
 	// =========================
 	async function runSearch(q: string) {
 		const currentId = ++requestId;
 
-		// cancel previous request
 		controller?.abort();
 		controller = new AbortController();
 
@@ -74,12 +65,11 @@
 				signal: controller.signal
 			});
 
-			// ignore outdated responses
 			if (currentId !== requestId) return;
 
 			searchResults = normalizeMultiSearch(data.results).slice(0, 6);
 			showDropdown = true;
-		} catch (err: unknown) {
+		} catch (err) {
 			if (err instanceof DOMException && err.name === 'AbortError') return;
 			console.error(err);
 		} finally {
@@ -90,40 +80,41 @@
 	}
 
 	// =========================
-	// KEYBOARD
-	// =========================
-	function handleKeyDown(e: KeyboardEvent) {
-		if (e.key === 'Enter') {
-			const q = searchQuery.trim();
-			if (!q) return;
-
-			if (debounceTimer) {
-				clearTimeout(debounceTimer);
-			}
-
-			controller?.abort();
-
-			showDropdown = false;
-
-			goto(resolve(`/search?q=${encodeURIComponent(q)}`));
-		}
-	}
-
-	// =========================
-	// SELECT ITEM
+	// NAVIGATION
 	// =========================
 	function handleSelect(item: SearchResult) {
 		showDropdown = false;
+		searchQuery = '';
 
 		goto(resolve(item.type === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`));
 	}
 
+	function handleKeyDown(e: KeyboardEvent) {
+		if (e.key !== 'Enter') return;
+
+		const q = searchQuery.trim();
+		if (!q) return;
+
+		if (debounceTimer) clearTimeout(debounceTimer);
+		if (controller) controller.abort();
+
+		showDropdown = false;
+
+		goto(resolve(`/search?q=${encodeURIComponent(q)}`));
+	}
+
 	// =========================
-	// OUTSIDE CLICK SAFETY (optional improvement)
+	// OUTSIDE / BLUR FIXED
 	// =========================
 	function closeDropdown() {
+		// prevents instant close when clicking inside dropdown
+		ignoreBlur = true;
+
 		setTimeout(() => {
-			showDropdown = false;
+			if (!ignoreBlur) {
+				showDropdown = false;
+			}
+			ignoreBlur = false;
 		}, 150);
 	}
 </script>
@@ -146,13 +137,13 @@
 			<a
 				href={resolve('/')}
 				class={`relative text-white/60 transition-colors duration-200 after:absolute
-			after:-bottom-1 after:left-0 after:h-[2px] after:w-full
-			after:origin-left after:scale-x-0 after:bg-white
-			after:transition-transform after:duration-300
-			after:content-[''] hover:text-white
-			hover:after:scale-x-100
-			${isActive('/') ? 'text-white after:scale-x-100' : ''}
-		`}
+	after:-bottom-1 after:left-0 after:h-0.5 after:w-full
+	after:origin-left after:scale-x-0 after:bg-white
+	after:transition-transform after:duration-300
+	after:content-[''] hover:text-white
+	hover:after:scale-x-100
+	${isActive('/') ? 'text-white after:scale-x-100' : ''}
+`}
 			>
 				Home
 			</a>
@@ -160,13 +151,13 @@
 			<a
 				href={resolve('/movies')}
 				class={`relative text-white/60 transition-colors duration-200 after:absolute
-			after:-bottom-1 after:left-0 after:h-[2px] after:w-full
-			after:origin-left after:scale-x-0 after:bg-white
-			after:transition-transform after:duration-300
-			after:content-[''] hover:text-white
-			hover:after:scale-x-100
-			${isActive('/movies') ? 'text-white after:scale-x-100' : ''}
-		`}
+	after:-bottom-1 after:left-0 after:h-0.5 after:w-full
+	after:origin-left after:scale-x-0 after:bg-white
+	after:transition-transform after:duration-300
+	after:content-[''] hover:text-white
+	hover:after:scale-x-100
+	${isActive('/movies') ? 'text-white after:scale-x-100' : ''}
+`}
 			>
 				Movies
 			</a>
@@ -174,15 +165,30 @@
 			<a
 				href={resolve('/series')}
 				class={`relative text-white/60 transition-colors duration-200 after:absolute
-			after:-bottom-1 after:left-0 after:h-[2px] after:w-full
-			after:origin-left after:scale-x-0 after:bg-white
-			after:transition-transform after:duration-300
-			after:content-[''] hover:text-white
-			hover:after:scale-x-100
-			${isActive('/series') ? 'text-white after:scale-x-100' : ''}
-		`}
+	after:-bottom-1 after:left-0 after:h-0.5 after:w-full
+	after:origin-left after:scale-x-0 after:bg-white
+	after:transition-transform after:duration-300
+	after:content-[''] hover:text-white
+	hover:after:scale-x-100
+	${isActive('/series') ? 'text-white after:scale-x-100' : ''}
+`}
 			>
 				Series
+			</a>
+
+			<!-- ADDED: ANIME -->
+			<a
+				href={resolve('/anime')}
+				class={`relative text-white/60 transition-colors duration-200 after:absolute
+	after:-bottom-1 after:left-0 after:h-0.5 after:w-full
+	after:origin-left after:scale-x-0 after:bg-white
+	after:transition-transform after:duration-300
+	after:content-[''] hover:text-white
+	hover:after:scale-x-100
+	${isActive('/anime') ? 'text-white after:scale-x-100' : ''}
+`}
+			>
+				Anime
 			</a>
 		</nav>
 

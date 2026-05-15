@@ -21,7 +21,7 @@
 	let currentEpisodeTitle = $state('');
 	let currentSeasonName = $state('');
 	let episodesOpen = $state(false);
-	let	showHeader = $state(false);
+	let showHeader = $state(false);
 
 	const id = $derived($page.params.id);
 
@@ -125,7 +125,7 @@
 							class="flex flex-col gap-3 bg-white/5 p-4 md:flex-row md:items-center md:justify-between"
 						>
 							<!-- 🎬 SEASON DROPDOWN (RESTORED GLASS UI) -->
-							<div class="relative min-w-200px" use:clickOutside={() => (seasonOpen = false)}>
+							<div class="min-w-200px relative" use:clickOutside={() => (seasonOpen = false)}>
 								<button
 									onclick={() => (seasonOpen = !seasonOpen)}
 									class="
@@ -222,7 +222,7 @@
 							</div>
 
 							<!-- 🎞 EPISODES DROPDOWN (MATCH SEASON STYLE) -->
-							<div class="relative min-w-200px" use:clickOutside={() => (episodesOpen = false)}>
+							<div class="min-w-200px relative" use:clickOutside={() => (episodesOpen = false)}>
 								<!-- Trigger -->
 								<button
 									onclick={() => (episodesOpen = !episodesOpen)}
@@ -311,6 +311,7 @@
 							title="Episode Player"
 							src={`https://embed.filmu.in/tv/${series.id}/${season}/${episode}`}
 							allowfullscreen
+							allow="autoplay; encrypted-media; picture-in-picture"
 						></iframe>
 					</div>
 				</div>
