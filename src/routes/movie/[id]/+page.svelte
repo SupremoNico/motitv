@@ -314,9 +314,10 @@
 
 					<!-- Video player -->
 					<div class="relative aspect-video w-full bg-zinc-950">
+						<!-- https://framextv.tech/embed/${movie.id}?autoplay=1&muted=0 -->
 						<iframe
 							class="absolute inset-0 h-full w-full"
-							src={`https://embed.filmu.in/movie/${movie.id}`}
+							src={`https://framextv.tech/embed/${movie.id}?autoplay=1&muted=0`}
 							title={`${movie.title} movie player`}
 							allow="encrypted-media; picture-in-picture; fullscreen"
 							allowfullscreen

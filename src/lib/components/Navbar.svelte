@@ -246,21 +246,21 @@
              LOGO
         ============================================================= -->
 
-		<a
-			href={resolve('/')}
+		<div
 			onclick={() => {
 				mobileMenuOpen = false;
 				showDropdown = false;
 			}}
-			class="flex h-0 items-center"
-			aria-label="MOTITV Home"
+			class="cursor-pointer"
 		>
-			<img
-				src="/logo.png"
-				alt="MOTITV logo"
-				class="h-45 w-45 -translate-y-1.5 cursor-pointer object-contain"
-			/>
-		</a>
+			<a href={resolve('/')} class="flex h-0 items-center" aria-label="MOTITV Home">
+				<img
+					src="/logo.png"
+					alt="MOTITV logo"
+					class="pointer-events-none h-45 w-45 -translate-y-1.5 object-contain"
+				/>
+			</a>
+		</div>
 
 		<!-- ============================================================
              DESKTOP NAVIGATION
