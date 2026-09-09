@@ -22,103 +22,371 @@
 		closeTrailer,
 		imageUrl
 	}: Props = $props();
+
+	const profileUrl = (path: string | null) => {
+		return imageUrl(path, 'w185');
+	};
+
+	const year = series.first_air_date ? series.first_air_date.slice(0, 4) : 'N/A';
+
+	const rating = Number(series.vote_average ?? 0).toFixed(1);
+
+	const seasons = series.number_of_seasons ?? 0;
+	const episodes = series.number_of_episodes ?? 0;
 </script>
 
-<!-- 🌌 DETAILS ONLY (NO BACKDROP, SINGLE LAYOUT CONTAINER) -->
+<!-- ========================= -->
+<!-- DETAILS -->
+<!-- ========================= -->
+
 <div class="relative text-white">
-	<div class="mx-auto max-w-6xl px-6 py-10">
+	<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+		<!-- ========================= -->
+		<!-- TRAILER MODAL -->
+		<!-- ========================= -->
 
-		<!-- 🎞 TRAILER -->
-		{#if showTrailer}
-			<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
-				<button onclick={closeTrailer} class="absolute top-6 right-6 text-2xl">✕</button>
+		{#if showTrailer && trailerKey}
+			<div
+				class="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md sm:p-6"
+				role="dialog"
+				aria-modal="true"
+				aria-label={`${series.name} trailer`}
+			>
+				<!-- Close button -->
 
-				<div class="w-full max-w-5xl px-4">
-					<div class="relative h-0 pb-[56.25%]">
+				<button
+					type="button"
+					onclick={closeTrailer}
+					class="absolute top-4 right-4 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/10 text-xl text-white transition hover:bg-white hover:text-black focus:ring-2 focus:ring-white/50 focus:outline-none sm:top-6 sm:right-6"
+					aria-label="Close trailer"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						class="h-5 w-5"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" />
+					</svg>
+				</button>
+
+				<!-- Trailer container -->
+
+				<div class="w-full max-w-6xl">
+					<div
+						class="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl"
+					>
 						<iframe
 							class="absolute inset-0 h-full w-full"
-							src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1`}
-							allow="autoplay; encrypted-media"
-							title="Trailer"
+							src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`}
+							title={`${series.name} trailer`}
+							allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
 							allowfullscreen
-						>
-						</iframe>
+						></iframe>
 					</div>
 				</div>
 			</div>
 		{/if}
 
-		<!-- TITLE -->
-		<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-			<h1 class="text-4xl font-bold md:text-5xl">{series.name}</h1>
+		<!-- ========================= -->
+		<!-- MAIN SERIES INFO -->
+		<!-- ========================= -->
 
-			{#if trailerKey}
-				<button
-					onclick={openTrailer}
-					class="group flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm backdrop-blur-md transition hover:scale-[1.03] hover:bg-white/20"
-				>
-					<span class="text-lg transition group-hover:rotate-12">🎬</span>
-					<span class="font-medium">Watch Trailer</span>
-				</button>
-			{/if}
-		</div>
+		<section>
+			<!-- Header -->
 
-		<!-- INFO -->
-		<div class="mt-4 flex flex-wrap gap-4 text-sm text-white/80">
-			<span>{series.first_air_date?.slice(0, 4)}</span>
-			<span>{series.number_of_seasons} Seasons</span>
-			<span>{series.number_of_episodes} Episodes</span>
-			<span>{series.vote_average.toFixed(1)}</span>
-		</div>
+			<div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+				<div class="max-w-4xl">
+					<!-- Small label -->
 
-		<!-- GENRES -->
-		{#if series.genres?.length}
-			<div class="mt-4 flex flex-wrap gap-2">
-				{#each series.genres as genre (genre.id)}
-					<span class="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs backdrop-blur-md">
-						{genre.name}
-					</span>
-				{/each}
+					<div
+						class="mb-3 flex items-center gap-2 text-xs font-medium tracking-[0.2em] text-white/40 uppercase"
+					>
+						<span class="h-1.5 w-1.5 rounded-full bg-white" aria-hidden="true"></span>
+
+						<span>TV Series</span>
+					</div>
+
+					<!-- Title -->
+
+					<h1 class="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
+						{series.name}
+					</h1>
+				</div>
+
+				<!-- Trailer button -->
+
+				{#if trailerKey}
+					<button
+						type="button"
+						onclick={openTrailer}
+						class="group inline-flex shrink-0 cursor-pointer items-center justify-center gap-3 self-start rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-medium text-white shadow-lg backdrop-blur-xl transition duration-200 hover:scale-[1.02] hover:bg-white hover:text-black focus:ring-2 focus:ring-white/50 focus:outline-none lg:self-auto"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							fill="currentColor"
+							class="h-4 w-4 transition-transform duration-200 group-hover:scale-110"
+						>
+							<path
+								d="M8 5.14v13.72a1 1 0 0 0 1.5.86l10.5-6.86a1 1 0 0 0 0-1.72L9.5 4.28A1 1 0 0 0 8 5.14z"
+							/>
+						</svg>
+
+						<span>Watch Trailer</span>
+					</button>
+				{/if}
 			</div>
-		{/if}
 
-		<p class="mt-4 max-w-3xl text-white/80">{series.overview}</p>
+			<!-- ========================= -->
+			<!-- METADATA -->
+			<!-- ========================= -->
 
-		<!-- 🎬 CREATORS -->
+			<div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-white/60">
+				<!-- Year -->
+
+				<div class="flex items-center gap-2">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.8"
+						class="h-4 w-4 text-white/40"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
+						/>
+					</svg>
+
+					<span>{year}</span>
+				</div>
+
+				<!-- Seasons -->
+
+				<div class="flex items-center gap-2">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.8"
+						class="h-4 w-4 text-white/40"
+					>
+						<rect x="3" y="4" width="18" height="16" rx="2" />
+
+						<path stroke-linecap="round" stroke-linejoin="round" d="M8 4v16M16 4v16" />
+					</svg>
+
+					<span>
+						{seasons}
+						{seasons === 1 ? ' Season' : ' Seasons'}
+					</span>
+				</div>
+
+				<!-- Episodes -->
+
+				<div class="flex items-center gap-2">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.8"
+						class="h-4 w-4 text-white/40"
+					>
+						<rect x="3" y="5" width="18" height="14" rx="2" />
+
+						<path stroke-linecap="round" stroke-linejoin="round" d="M8 9h8M8 13h5" />
+					</svg>
+
+					<span>
+						{episodes}
+						{episodes === 1 ? ' Episode' : ' Episodes'}
+					</span>
+				</div>
+
+				<!-- Rating -->
+
+				<div class="flex items-center gap-2">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="currentColor"
+						class="h-4 w-4 text-white/70"
+					>
+						<path
+							d="m12 3 2.78 5.63 6.22.9-4.5 4.38 1.06 6.19L12 17.18 6.44 20.1l1.06-6.19L3 9.53l6.22-.9L12 3z"
+						/>
+					</svg>
+
+					<span class="font-medium text-white">
+						{rating}
+					</span>
+
+					<span>/ 10</span>
+				</div>
+
+				<!-- Vote count -->
+
+				{#if series.vote_count}
+					<div class="text-white/40">
+						{series.vote_count.toLocaleString()} ratings
+					</div>
+				{/if}
+			</div>
+
+			<!-- ========================= -->
+			<!-- GENRES -->
+			<!-- ========================= -->
+
+			{#if series.genres?.length}
+				<div class="mt-6 flex flex-wrap gap-2">
+					{#each series.genres as genre (genre.id)}
+						<span
+							class="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/70 backdrop-blur-md transition hover:bg-white/10 hover:text-white"
+						>
+							{genre.name}
+						</span>
+					{/each}
+				</div>
+			{/if}
+
+			<!-- ========================= -->
+			<!-- OVERVIEW -->
+			<!-- ========================= -->
+
+			{#if series.overview}
+				<div class="mt-8 max-w-4xl">
+					<h2 class="mb-3 text-sm font-semibold tracking-[0.15em] text-white/40 uppercase">
+						Overview
+					</h2>
+
+					<p class="text-sm leading-7 text-white/70 sm:text-base sm:leading-8">
+						{series.overview}
+					</p>
+				</div>
+			{/if}
+		</section>
+
+		<!-- ========================= -->
+		<!-- DIVIDER -->
+		<!-- ========================= -->
+
+		<div class="my-12 h-px bg-white/10"></div>
+
+		<!-- ========================= -->
+		<!-- CREATORS -->
+		<!-- ========================= -->
+
 		{#if creators.length}
-			<div class="mt-12">
-				<h2 class="mb-4 text-xl font-semibold">Creators</h2>
+			<section>
+				<div class="mb-5 flex items-end justify-between">
+					<div>
+						<p class="text-xs font-medium tracking-[0.2em] text-white/40 uppercase">
+							Behind the series
+						</p>
 
-				<div class="flex flex-wrap gap-4">
+						<h2 class="mt-1 text-xl font-semibold sm:text-2xl">
+							Creator{creators.length > 1 ? 's' : ''}
+						</h2>
+					</div>
+				</div>
+
+				<div class="flex flex-wrap gap-3 sm:gap-4">
 					{#each creators as creator (creator.id)}
-						<div class="flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-lg hover:bg-white/10">
-							<img alt={creator.name} src={imageUrl(creator.profile_path)} class="h-12 w-12 rounded-full object-cover" />
-							<div>
-								<p class="text-sm font-semibold">{creator.name}</p>
-								<p class="text-xs text-white/50">{creator.job}</p>
+						<div
+							class="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 transition duration-200 hover:border-white/20 hover:bg-white/[0.08] sm:px-4"
+						>
+							<!-- Profile -->
+
+							<img
+								alt={creator.name}
+								src={profileUrl(creator.profile_path)}
+								class="h-11 w-11 rounded-full object-cover ring-1 ring-white/10 sm:h-12 sm:w-12"
+								loading="lazy"
+							/>
+
+							<!-- Info -->
+
+							<div class="min-w-0">
+								<p class="max-w-[180px] truncate text-sm font-semibold text-white">
+									{creator.name}
+								</p>
+
+								<p class="mt-0.5 text-xs text-white/40">
+									{creator.job}
+								</p>
 							</div>
 						</div>
 					{/each}
 				</div>
-			</div>
+			</section>
 		{/if}
 
-		<!-- 🎭 CAST -->
-		{#if cast.length}
-			<div class="mt-12">
-				<h2 class="mb-4 text-xl font-semibold">Cast</h2>
+		<!-- ========================= -->
+		<!-- CAST -->
+		<!-- ========================= -->
 
-				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+		{#if cast.length}
+			<section class="mt-12">
+				<div class="mb-5">
+					<p class="text-xs font-medium tracking-[0.2em] text-white/40 uppercase">Featuring</p>
+
+					<h2 class="mt-1 text-xl font-semibold sm:text-2xl">Cast</h2>
+				</div>
+
+				<div
+					class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6"
+				>
 					{#each cast as actor (actor.id)}
-						<div class="rounded-xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-lg hover:bg-white/10">
-							<img alt={actor.name} src={imageUrl(actor.profile_path)} class="mx-auto h-20 w-20 rounded-full object-cover" />
-							<p class="mt-3 text-sm font-semibold">{actor.name}</p>
-							<p class="text-xs text-white/50">{actor.character}</p>
+						<div
+							class="group overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] transition duration-200 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.08]"
+						>
+							<!-- Profile -->
+
+							<div class="relative aspect-square overflow-hidden bg-zinc-900">
+								<img
+									alt={actor.name}
+									src={profileUrl(actor.profile_path)}
+									class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+									loading="lazy"
+								/>
+
+								<!-- Image gradient -->
+
+								<div
+									class="pointer-events-none absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent opacity-80"
+								></div>
+							</div>
+
+							<!-- Actor info -->
+
+							<div class="p-3">
+								<p class="truncate text-sm font-semibold text-white">
+									{actor.name}
+								</p>
+
+								{#if actor.character}
+									<p class="mt-1 truncate text-xs text-white/40" title={actor.character}>
+										{actor.character}
+									</p>
+								{/if}
+							</div>
 						</div>
 					{/each}
 				</div>
-			</div>
+			</section>
 		{/if}
 
+		<!-- ========================= -->
+		<!-- BOTTOM SPACING -->
+		<!-- ========================= -->
+
+		<div class="h-8"></div>
 	</div>
 </div>

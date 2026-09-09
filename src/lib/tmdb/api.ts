@@ -19,47 +19,103 @@ import type {
 
 import { tmdbFetch } from './client';
 
-/* =========================
-   GENRES CACHE
-========================= */
+// ============================================================================
+// GENRES CACHE
+// ============================================================================
 
-let genresCache: Genre[] | null = null;
-let genresPromise: Promise<Genre[]> | null = null;
+// --------------------------------------------------------------------------
+// MOVIE GENRES
+// --------------------------------------------------------------------------
 
-export async function getGenres(): Promise<Genre[]> {
-	if (genresCache) return genresCache;
+let movieGenresCache: Genre[] | null = null;
+let movieGenresPromise: Promise<Genre[]> | null = null;
 
-	const data = await tmdbFetch<{ genres: Genre[] }>('/genre/movie/list');
+export async function getMovieGenres(): Promise<Genre[]> {
+	if (movieGenresCache) {
+		return movieGenresCache;
+	}
 
-	genresCache = data.genres;
+	const data = await tmdbFetch<{ genres: Genre[] }>(
+		'/genre/movie/list'
+	);
 
-	return genresCache;
+	movieGenresCache = data.genres;
+
+	return movieGenresCache;
 }
 
-export async function loadGenresCached(): Promise<Genre[]> {
-	if (genresCache) return genresCache;
+export async function loadMovieGenresCached(): Promise<Genre[]> {
+	if (movieGenresCache) {
+		return movieGenresCache;
+	}
 
-	if (!genresPromise) {
-		genresPromise = getGenres().then((data) => {
-			genresCache = data;
+	if (!movieGenresPromise) {
+		movieGenresPromise = getMovieGenres().then((data) => {
+			movieGenresCache = data;
 			return data;
 		});
 	}
 
-	return genresPromise;
+	return movieGenresPromise;
 }
 
-export function clearGenresCache() {
-	genresCache = null;
-	genresPromise = null;
+export function clearMovieGenresCache() {
+	movieGenresCache = null;
+	movieGenresPromise = null;
 }
 
-/* =========================
-   MOVIES
-========================= */
+// --------------------------------------------------------------------------
+// TV GENRES
+// --------------------------------------------------------------------------
+
+let seriesGenresCache: Genre[] | null = null;
+
+let seriesGenresPromise: Promise<Genre[]> | null = null;
+
+export async function getSeriesGenres(): Promise<Genre[]> {
+	if (seriesGenresCache) {
+		return seriesGenresCache;
+	}
+
+	const data = await tmdbFetch<{ genres: Genre[] }>(
+		'/genre/tv/list'
+	);
+
+	seriesGenresCache = data.genres;
+
+	return seriesGenresCache;
+}
+
+export async function loadSeriesGenresCached(): Promise<Genre[]> {
+	if (seriesGenresCache) {
+		return seriesGenresCache;
+	}
+
+	if (!seriesGenresPromise) {
+		seriesGenresPromise = getSeriesGenres().then((data) => {
+			seriesGenresCache = data;
+
+			return data;
+		});
+	}
+
+	return seriesGenresPromise;
+}
+
+export function clearSeriesGenresCache() {
+	seriesGenresCache = null;
+	seriesGenresPromise = null;
+}
+
+// ============================================================================
+// MOVIES
+// ============================================================================
 
 export function getAllMovies(page = 1) {
-	return tmdbFetch<TMDBResponse<Movie>>('/discover/movie', { page });
+	return tmdbFetch<TMDBResponse<Movie>>(
+		'/discover/movie',
+		{ page }
+	);
 }
 
 export function getMoviesByGenres(
@@ -70,49 +126,95 @@ export function getMoviesByGenres(
 		? genres.join(',')
 		: genres;
 
-	return tmdbFetch<TMDBResponse<Movie>>('/discover/movie', {
-		page,
-		with_genres
-	});
+	return tmdbFetch<TMDBResponse<Movie>>(
+		'/discover/movie',
+		{
+			page,
+			with_genres
+		}
+	);
 }
 
 export function getPopularMovies(page = 1) {
-	return tmdbFetch<TMDBResponse<Movie>>('/movie/popular', { page });
+	return tmdbFetch<TMDBResponse<Movie>>(
+		'/movie/popular',
+		{ page }
+	);
 }
 
 export function getTopRatedMovies(page = 1) {
-	return tmdbFetch<TMDBResponse<Movie>>('/movie/top_rated', { page });
+	return tmdbFetch<TMDBResponse<Movie>>(
+		'/movie/top_rated',
+		{ page }
+	);
 }
 
 export function getUpcomingMovies(page = 1) {
-	return tmdbFetch<TMDBResponse<Movie>>('/movie/upcoming', { page });
+	return tmdbFetch<TMDBResponse<Movie>>(
+		'/movie/upcoming',
+		{ page }
+	);
 }
 
 export function getNowPlayingMovies(page = 1) {
-	return tmdbFetch<TMDBResponse<Movie>>('/movie/now_playing', { page });
+	return tmdbFetch<TMDBResponse<Movie>>(
+		'/movie/now_playing',
+		{ page }
+	);
 }
 
-export function getTrendingMovies(timeWindow: 'day' | 'week' = 'day') {
-	return tmdbFetch<TMDBResponse<Movie>>(`/trending/movie/${timeWindow}`);
+export function getTrendingMovies(
+	timeWindow: 'day' | 'week' = 'day'
+) {
+	return tmdbFetch<TMDBResponse<Movie>>(
+		`/trending/movie/${timeWindow}`
+	);
 }
 
-/* =========================
-   TV SERIES
-========================= */
+// ============================================================================
+// TV SERIES
+// ============================================================================
 
-export function getAllSeries(page = 1) {
-	return tmdbFetch<TMDBResponse<TVSeries>>('/discover/tv', { page });
+export function getAllSeries(
+	page = 1,
+	genreId: number | null = null
+) {
+	const params: {
+		page: number;
+		with_genres?: string;
+	} = {
+		page
+	};
+
+	if (genreId !== null) {
+		params.with_genres = String(genreId);
+	}
+
+	return tmdbFetch<TMDBResponse<TVSeries>>(
+		'/discover/tv',
+		params
+	);
 }
 
-export function getTrendingTV(timeWindow: 'day' | 'week' = 'day') {
-	return tmdbFetch<TMDBResponse<TVSeries>>(`/trending/tv/${timeWindow}`);
+export function getTrendingTV(
+	timeWindow: 'day' | 'week' = 'day'
+) {
+	return tmdbFetch<TMDBResponse<TVSeries>>(
+		`/trending/tv/${timeWindow}`
+	);
 }
 
 export function getPopularTV(page = 1) {
-	return tmdbFetch<TMDBResponse<TVSeries>>('/tv/popular', { page });
+	return tmdbFetch<TMDBResponse<TVSeries>>(
+		'/tv/popular',
+		{ page }
+	);
 }
 
-export async function getSeasonDetails(tvId: string, seasonNumber: number) {
+export async function getSeasonDetails(
+	tvId: string,
+	seasonNumber: number
+) {
 	return tmdbFetch<{
 		id: string;
 		name: string;
@@ -122,44 +224,58 @@ export async function getSeasonDetails(tvId: string, seasonNumber: number) {
 			name: string;
 			overview: string;
 		}[];
-	}>(`/tv/${tvId}/season/${seasonNumber}`);
+	}>(
+		`/tv/${tvId}/season/${seasonNumber}`
+	);
 }
 
-/* =========================
-   MOVIE DETAILS
-========================= */
+// ============================================================================
+// MOVIE DETAILS
+// ============================================================================
 
 export function getMovieDetails(id: string) {
-	return tmdbFetch<MovieDetails>(`/movie/${id}`);
+	return tmdbFetch<MovieDetails>(
+		`/movie/${id}`
+	);
 }
 
 export function getMovieVideos(id: string) {
-	return tmdbFetch<MovieVideosResponse>(`/movie/${id}/videos`);
+	return tmdbFetch<MovieVideosResponse>(
+		`/movie/${id}/videos`
+	);
 }
 
 export function getMovieCredits(id: string) {
-	return tmdbFetch<MovieCredits>(`/movie/${id}/credits`);
+	return tmdbFetch<MovieCredits>(
+		`/movie/${id}/credits`
+	);
 }
 
-/* =========================
-   SERIES DETAILS
-========================= */
+// ============================================================================
+// SERIES DETAILS
+// ============================================================================
 
 export function getSeriesDetails(id: string) {
-	return tmdbFetch<SeriesDetails>(`/tv/${id}`);
+	return tmdbFetch<SeriesDetails>(
+		`/tv/${id}`
+	);
 }
 
 export function getSeriesCredits(id: string) {
-	return tmdbFetch<TVCredits>(`/tv/${id}/credits`);
+	return tmdbFetch<TVCredits>(
+		`/tv/${id}/credits`
+	);
 }
 
 export function getSeriesVideos(id: string) {
-	return tmdbFetch<TVVideosResponse>(`/tv/${id}/videos`);
+	return tmdbFetch<TVVideosResponse>(
+		`/tv/${id}/videos`
+	);
 }
 
-/* =========================
-   SEARCH
-========================= */
+// ============================================================================
+// SEARCH
+// ============================================================================
 
 export function searchMulti(
 	query: string,
@@ -170,23 +286,35 @@ export function searchMulti(
 		'/search/multi',
 		{
 			query,
-			page,
+			page
 		},
 		options
 	);
 }
 
-export function normalizeMultiSearch(items: MultiSearchItem[]): SearchResult[] {
+export function normalizeMultiSearch(
+	items: MultiSearchItem[]
+): SearchResult[] {
 	return items
-		.filter((item) => item.media_type === 'movie' || item.media_type === 'tv')
+		.filter(
+			(item) =>
+				item.media_type === 'movie' ||
+				item.media_type === 'tv'
+		)
 		.map((item) => ({
 			id: item.id,
 
 			type: item.media_type as 'movie' | 'tv',
 
-			title: item.title || item.name || 'Untitled',
+			title:
+				item.title ||
+				item.name ||
+				'Untitled',
 
-			date: item.release_date || item.first_air_date || '',
+			date:
+				item.release_date ||
+				item.first_air_date ||
+				'',
 
 			poster: item.poster_path,
 
@@ -198,19 +326,27 @@ export function normalizeMultiSearch(items: MultiSearchItem[]): SearchResult[] {
 		}));
 }
 
-/* =========================
-   HERO MEDIA
-========================= */
+// ============================================================================
+// HERO MEDIA
+// ============================================================================
 
-export async function getHeroMedia(movieId: number): Promise<HeroMedia> {
+export async function getHeroMedia(
+	movieId: number
+): Promise<HeroMedia> {
 	try {
-		const images = await tmdbFetch<MovieImages>(`/movie/${movieId}/images`);
+		const images = await tmdbFetch<MovieImages>(
+			`/movie/${movieId}/images`
+		);
 
 		const logos = images.logos ?? [];
 
 		const selectedLogo =
-			logos.find((l) => l.iso_639_1 === 'en') ||
-			logos.find((l) => l.iso_639_1 === null) ||
+			logos.find(
+				(logo) => logo.iso_639_1 === 'en'
+			) ||
+			logos.find(
+				(logo) => logo.iso_639_1 === null
+			) ||
 			logos[0];
 
 		return {
@@ -230,12 +366,19 @@ export async function getHeroMedia(movieId: number): Promise<HeroMedia> {
 	}
 }
 
-/* =========================
-   FEATURED HERO
-========================= */
+// ============================================================================
+// FEATURED HERO
+// ============================================================================
 
 export async function getFeaturedMovies(): Promise<Movie[]> {
-	const trending = await getTrendingMovies('week');
+	const trending =
+		await getTrendingMovies('week');
 
-	return trending.results.filter((m) => m.backdrop_path && m.overview).slice(0, 8);
+	return trending.results
+		.filter(
+			(movie) =>
+				movie.backdrop_path &&
+				movie.overview
+		)
+		.slice(0, 8);
 }
