@@ -229,7 +229,7 @@
         ================================================================= -->
 
 		<section
-			class="relative h-[85vh] min-h-[600px] overflow-hidden sm:h-screen"
+			class="relative h-[85vh] min-h-150 overflow-hidden sm:h-screen"
 			aria-label="Loading homepage"
 		>
 			<div class="absolute inset-0 animate-pulse bg-zinc-900"></div>
@@ -295,7 +295,7 @@
 
 		{#if currentMovie}
 			<section
-				class="relative z-10 h-[85vh] min-h-[600px] overflow-hidden sm:h-screen"
+				class="relative z-10 h-[85vh] min-h-150 overflow-hidden sm:h-screen"
 				aria-label="Featured movies"
 			>
 				<!-- ========================================================

@@ -312,7 +312,7 @@
 		<div class="mx-auto w-full max-w-7xl px-3 pt-24 sm:px-5 lg:px-8">
 			<!-- Controls skeleton -->
 			<div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-				<div class="h-11 w-full animate-pulse rounded-xl bg-white/5 sm:w-[360px]"></div>
+				<div class="h-11 w-full animate-pulse rounded-xl bg-white/5 sm:w-90"></div>
 
 				<div class="grid grid-cols-5 gap-1.5 sm:flex">
 					{#each Array.from({ length: 5 }, (_, index) => index) as index (index)}
@@ -389,7 +389,7 @@
 		<div class="absolute inset-0 bg-black/40 backdrop-blur-2xl"></div>
 
 		<div
-			class="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black via-black/80 to-transparent"
+			class="absolute inset-x-0 bottom-0 h-[60%] bg-linear-to-t from-black via-black/80 to-transparent"
 		></div>
 
 		<div class="relative z-10">
@@ -414,14 +414,16 @@
         ================================================= -->
 
 					<div class="relative z-50 w-full lg:w-auto">
-						<div class="relative w-full lg:w-auto" onclick={(event) => event.stopPropagation()}>
+						<div class="relative w-full lg:w-auto">
 							<!-- Main selector button -->
 							<button
 								type="button"
-								onclick={toggleEpisodeMenu}
+								onclick={(event) => {
+									event.stopPropagation();
+									toggleEpisodeMenu();
+								}}
 								disabled={seasonLoading || episodes.length === 0}
-								class="flex h-11 w-full min-w-0 cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/80 px-4 text-sm font-medium text-white shadow-lg backdrop-blur-xl transition-all duration-200 hover:border-white/25 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[320px] lg:min-w-[400px]"
-								aria-haspopup="menu"
+								class="flex h-11 w-full min-w-0 cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/80 px-4 text-sm font-medium text-white shadow-lg backdrop-blur-xl transition-all duration-200 hover:border-white/25 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[320px] lg:min-w-100"
 								aria-expanded={episodeMenuOpen}
 							>
 								<div class="flex min-w-0 items-center gap-2">
@@ -438,16 +440,13 @@
 										{:else if episodes.length === 0}
 											No episodes
 										{:else if currentEpisode}
-											S{season}
-											· EP
-											{currentEpisode.episode_number}
+											S{season} · EP {currentEpisode.episode_number}
 
 											<span class="text-white/50">
 												· {currentEpisode.name || `Episode ${currentEpisode.episode_number}`}
 											</span>
 										{:else}
-											Season {season}
-											· Episode {episode}
+											Season {season} · Episode {episode}
 										{/if}
 									</span>
 								</div>
@@ -462,18 +461,16 @@
 							</button>
 
 							<!-- =================================================
-                     COMBINED SEASON + EPISODE MENU
-                ================================================= -->
+		     COMBINED SEASON + EPISODE MENU
+		================================================= -->
 
 							{#if episodeMenuOpen && episodes.length > 0}
 								<div
-									class="absolute top-[calc(100%+8px)] left-0 z-[999] w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/98 shadow-[0_20px_60px_rgba(0,0,0,0.75)] backdrop-blur-2xl sm:w-[420px] lg:w-[480px]"
-									role="menu"
-									onclick={(event) => event.stopPropagation()}
+									class="absolute top-[calc(100%+8px)] left-0 z-999 w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/98 shadow-[0_20px_60px_rgba(0,0,0,0.75)] backdrop-blur-2xl sm:w-105 lg:w-120"
 								>
 									<!-- =================================================
-                             SEASON SELECTOR
-                        ================================================= -->
+				     SEASON SELECTOR
+				================================================= -->
 
 									<div class="border-b border-white/10 p-3">
 										<div
@@ -498,8 +495,8 @@
 									</div>
 
 									<!-- =================================================
-                             EPISODE HEADER
-                        ================================================= -->
+				     EPISODE HEADER
+				================================================= -->
 
 									<div class="border-b border-white/10 px-3 py-2.5">
 										<div class="flex items-center justify-between">
@@ -517,20 +514,20 @@
 									</div>
 
 									<!-- =================================================
-                             EPISODE LIST
-                        ================================================= -->
+				     EPISODE LIST
+				================================================= -->
 
-									<div class="max-h-[55vh] overflow-y-auto p-2 sm:max-h-[500px]">
+									<div class="max-h-[55vh] overflow-y-auto p-2 sm:max-h-125">
 										{#each episodes as item (item.episode_number)}
 											<button
 												type="button"
-												role="menuitem"
 												onclick={() => selectEpisode(item.episode_number)}
 												class={item.episode_number === episode
 													? 'flex w-full min-w-0 cursor-pointer gap-3 rounded-xl bg-white/10 p-2 text-left transition-colors'
 													: 'flex w-full min-w-0 cursor-pointer gap-3 rounded-xl p-2 text-left transition-colors hover:bg-white/5'}
 											>
 												<!-- Episode thumbnail -->
+
 												<div
 													class="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-900 sm:h-20 sm:w-32"
 												>
@@ -550,14 +547,13 @@
 													{/if}
 
 													<div
-														class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"
+														class="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent"
 													></div>
 
 													<div
 														class="absolute bottom-1 left-1 rounded bg-black/80 px-1.5 py-0.5 text-[9px] font-semibold text-white"
 													>
-														EP
-														{item.episode_number}
+														EP {item.episode_number}
 													</div>
 
 													{#if item.episode_number === episode}
@@ -574,6 +570,7 @@
 												</div>
 
 												<!-- Episode information -->
+
 												<div class="min-w-0 flex-1 py-0.5">
 													<div
 														class={item.episode_number === episode
@@ -584,8 +581,7 @@
 													</div>
 
 													<div class="mt-1 text-[10px] text-zinc-600">
-														Episode
-														{item.episode_number}
+														Episode {item.episode_number}
 													</div>
 
 													{#if item.air_date}
@@ -602,6 +598,7 @@
 												</div>
 
 												<!-- Current indicator -->
+
 												{#if item.episode_number === episode}
 													<Check size={15} strokeWidth={2.5} class="mt-1 shrink-0 text-white" />
 												{/if}
@@ -643,7 +640,7 @@
 
 						<!-- CURRENT EPISODE -->
 						<div
-							class="flex h-10 min-w-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 px-2 text-xs font-semibold text-white sm:min-w-[70px] sm:px-3"
+							class="flex h-10 min-w-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 px-2 text-xs font-semibold text-white sm:min-w-17.5 sm:px-3"
 						>
 							S{season} · E{episode}
 						</div>

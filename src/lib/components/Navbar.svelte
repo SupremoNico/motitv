@@ -19,7 +19,7 @@
 	// NAVBAR
 	// ================================================================
 
-	let navbarElement: HTMLElement;
+	let navbarElement = $state<HTMLElement | null>(null);
 
 	// ================================================================
 	// SEARCH STATE
@@ -30,11 +30,18 @@
 	let showDropdown = $state(false);
 	let loading = $state(false);
 
+	// ================================================================
+	// MOBILE MENU
+	// ================================================================
+
 	let mobileMenuOpen = $state(false);
+
+	// ================================================================
+	// SEARCH REQUEST STATE
+	// ================================================================
 
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 	let controller: AbortController | null = null;
-
 	let requestId = 0;
 
 	// ================================================================
@@ -46,30 +53,39 @@
 
 		const q = value.trim();
 
+		// Clear previous debounce
 		if (debounceTimer) {
 			clearTimeout(debounceTimer);
 			debounceTimer = null;
 		}
 
+		// Empty search
 		if (!q) {
 			searchResults = [];
 			showDropdown = false;
 			loading = false;
 
 			controller?.abort();
+			controller = null;
 
 			return;
 		}
 
+		// Show dropdown immediately
 		showDropdown = true;
 
+		// Don't search until at least 2 characters
 		if (q.length < 2) {
 			searchResults = [];
 			loading = false;
 
+			controller?.abort();
+			controller = null;
+
 			return;
 		}
 
+		// Debounce search
 		debounceTimer = setTimeout(() => {
 			runSearch(q);
 		}, 300);
@@ -82,6 +98,7 @@
 	async function runSearch(q: string) {
 		const currentId = ++requestId;
 
+		// Cancel previous request
 		controller?.abort();
 
 		controller = new AbortController();
@@ -93,6 +110,7 @@
 				signal: controller.signal
 			});
 
+			// Ignore stale request
 			if (currentId !== requestId) {
 				return;
 			}
@@ -121,23 +139,29 @@
 
 	function handleSelect(item: SearchResult) {
 		showDropdown = false;
-		searchQuery = '';
 		mobileMenuOpen = false;
+		searchQuery = '';
 
-		goto(resolve(item.type === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`));
+		if (item.type === 'movie') {
+			goto(resolve(`/movie/${item.id}`));
+		} else {
+			goto(resolve(`/series/${item.id}`));
+		}
 	}
 
 	// ================================================================
 	// SEARCH KEYBOARD
 	// ================================================================
 
-	function handleKeyDown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
+	function handleKeyDown(event: KeyboardEvent) {
+		// Escape
+		if (event.key === 'Escape') {
 			showDropdown = false;
 			return;
 		}
 
-		if (e.key !== 'Enter') {
+		// Only handle Enter
+		if (event.key !== 'Enter') {
 			return;
 		}
 
@@ -161,7 +185,7 @@
 	}
 
 	// ================================================================
-	// VIEW ALL RESULTS
+	// VIEW ALL SEARCH RESULTS
 	// ================================================================
 
 	function viewAllResults() {
@@ -184,7 +208,7 @@
 	function toggleMobileMenu() {
 		mobileMenuOpen = !mobileMenuOpen;
 
-		// Close search dropdown when opening menu
+		// Close search dropdown when opening/closing menu
 		showDropdown = false;
 	}
 
@@ -207,60 +231,61 @@
 		showDropdown = false;
 		mobileMenuOpen = false;
 	}
-</script>
 
-<!-- ================================================================
-     GLOBAL OUTSIDE CLICK
-================================================================ -->
+	// ================================================================
+	// GLOBAL OUTSIDE CLICK
+	// ================================================================
 
-<svelte:window
-	onclick={(event) => {
+	function handleWindowClick(event: MouseEvent) {
 		const target = event.target;
 
 		if (!(target instanceof Node)) {
 			return;
 		}
 
-		if (navbarElement && !navbarElement.contains(target)) {
-			closeMenus();
+		// Click happened inside navbar
+		if (navbarElement?.contains(target)) {
+			return;
 		}
-	}}
-/>
+
+		// Click happened outside navbar
+		closeMenus();
+	}
+</script>
+
+<!-- ================================================================
+     GLOBAL OUTSIDE CLICK
+================================================================ -->
+
+<svelte:window onclick={handleWindowClick} />
 
 <!-- ================================================================
      NAVBAR
 ================================================================ -->
 
-<header
-	bind:this={navbarElement}
-	onclick={(event) => {
-		// Prevent clicks inside navbar from reaching <svelte:window>
-		event.stopPropagation();
-	}}
-	class="fixed top-4 left-1/2 z-50 w-[92%] -translate-x-1/2"
->
+<header bind:this={navbarElement} class="fixed top-4 left-1/2 z-9999 w-[92%] -translate-x-1/2">
 	<div
-		class="relative flex items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-6 py-3 shadow-lg backdrop-blur-xl"
+		class="relative flex items-center justify-between rounded-2xl border border-white/10 bg-white/10 px-4 py-3 shadow-lg backdrop-blur-xl sm:px-6"
 	>
 		<!-- ============================================================
              LOGO
         ============================================================= -->
 
-		<div
+		<a
+			href={resolve('/')}
+			aria-label="MOTITV Home"
 			onclick={() => {
 				mobileMenuOpen = false;
 				showDropdown = false;
 			}}
-			class="cursor-pointer"
+			class="flex h-0 cursor-pointer items-center"
 		>
-			<a href={resolve('/')} class="flex h-0 items-center" aria-label="MOTITV Home">
-				<img
-					src="/logo.png"
-					alt="MOTITV logo"
-					class="pointer-events-none h-45 w-45 -translate-y-1.5 object-contain"
-				/>
-			</a>
-		</div>
+			<img
+				src="/logo.png"
+				alt="MOTITV logo"
+				class="pointer-events-none h-45 w-45 -translate-y-1.5 object-contain"
+			/>
+		</a>
 
 		<!-- ============================================================
              DESKTOP NAVIGATION
@@ -351,7 +376,7 @@
 					<input
 						type="text"
 						value={searchQuery}
-						oninput={(e) => handleSearchInput((e.target as HTMLInputElement).value)}
+						oninput={(event) => handleSearchInput((event.target as HTMLInputElement).value)}
 						onkeydown={handleKeyDown}
 						onfocus={() => {
 							if (searchResults.length > 0) {
@@ -359,20 +384,23 @@
 							}
 						}}
 						placeholder="Search movies, series..."
+						autocomplete="off"
 						class="h-10 w-56 rounded-full border border-white/10 bg-white/5 py-2 pr-3 pl-9 text-xs text-white placeholder-white/40 backdrop-blur-md transition-all duration-200 outline-none focus:border-white/30 focus:bg-white/10 md:w-64 md:text-sm"
 					/>
 
-					<!-- DESKTOP DROPDOWN -->
+					<!-- ====================================================
+                         DESKTOP SEARCH DROPDOWN
+                    ===================================================== -->
 
 					{#if showDropdown}
 						<div
-							class="absolute top-full right-0 z-50 mt-2 w-80 overflow-hidden rounded-3xl border border-white/10 bg-black/90 shadow-[0_25px_80px_rgba(0,0,0,0.9)] backdrop-blur-2xl"
+							class="absolute top-full right-0 z-100 mt-2 w-80 overflow-hidden rounded-3xl border border-white/10 bg-black/95 shadow-[0_25px_80px_rgba(0,0,0,0.9)] backdrop-blur-2xl"
 						>
 							{#if loading}
 								<div class="flex items-center gap-2 px-4 py-4 text-sm text-white/60">
 									<Search size={15} class="animate-pulse" />
 
-									<span> Searching... </span>
+									<span>Searching...</span>
 								</div>
 							{:else if searchResults.length === 0}
 								<div class="px-4 py-4 text-sm text-white/60">No results found</div>
@@ -381,7 +409,7 @@
 									<button
 										type="button"
 										onclick={() => handleSelect(item)}
-										class="group flex w-full items-center gap-3 border-b border-white/5 px-3 py-3 text-left transition-colors hover:bg-white/5"
+										class="group flex w-full cursor-pointer items-center gap-3 border-b border-white/5 px-3 py-3 text-left transition-colors hover:bg-white/5"
 									>
 										<img
 											src={item.poster
@@ -417,12 +445,14 @@
 									</button>
 								{/each}
 
+								<!-- VIEW ALL -->
+
 								<button
 									type="button"
 									onclick={viewAllResults}
-									class="group flex w-full items-center justify-center gap-2 bg-white/5 px-4 py-3 text-center text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+									class="group flex w-full cursor-pointer items-center justify-center gap-2 bg-white/5 px-4 py-3 text-center text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
 								>
-									<span> View all results </span>
+									<span>View all results</span>
 
 									<ArrowRight
 										size={15}
@@ -444,8 +474,11 @@
 				type="button"
 				aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
 				aria-expanded={mobileMenuOpen}
-				onclick={toggleMobileMenu}
-				class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95 md:hidden"
+				onclick={(event) => {
+					event.stopPropagation();
+					toggleMobileMenu();
+				}}
+				class="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95 md:hidden"
 			>
 				{#if mobileMenuOpen}
 					<X size={20} strokeWidth={1.8} />
@@ -461,9 +494,11 @@
 
 		{#if mobileMenuOpen}
 			<div
-				class="absolute top-[calc(100%+8px)] right-0 left-0 z-50 rounded-2xl border border-white/10 bg-black/90 p-3 shadow-[0_25px_80px_rgba(0,0,0,0.8)] backdrop-blur-2xl md:hidden"
+				class="absolute top-[calc(100%+8px)] right-0 left-0 z-90 rounded-2xl border border-white/10 bg-black/95 p-3 shadow-[0_25px_80px_rgba(0,0,0,0.8)] backdrop-blur-2xl md:hidden"
 			>
-				<!-- MOBILE SEARCH -->
+				<!-- ====================================================
+                     MOBILE SEARCH
+                ===================================================== -->
 
 				<div class="relative mb-3">
 					<Search
@@ -475,7 +510,7 @@
 					<input
 						type="text"
 						value={searchQuery}
-						oninput={(e) => handleSearchInput((e.target as HTMLInputElement).value)}
+						oninput={(event) => handleSearchInput((event.target as HTMLInputElement).value)}
 						onkeydown={handleKeyDown}
 						onfocus={() => {
 							if (searchResults.length > 0) {
@@ -483,20 +518,23 @@
 							}
 						}}
 						placeholder="Search movies, series..."
+						autocomplete="off"
 						class="h-11 w-full rounded-full border border-white/10 bg-white/5 py-2 pr-4 pl-9 text-sm text-white placeholder-white/40 transition-all duration-200 outline-none focus:border-white/30 focus:bg-white/10"
 					/>
 
-					<!-- MOBILE DROPDOWN -->
+					<!-- ====================================================
+                         MOBILE SEARCH DROPDOWN
+                    ===================================================== -->
 
 					{#if showDropdown}
 						<div
-							class="absolute top-full right-0 left-0 z-[60] mt-2 overflow-hidden rounded-2xl border border-white/10 bg-black/95 shadow-[0_25px_80px_rgba(0,0,0,0.9)] backdrop-blur-2xl"
+							class="absolute top-full right-0 left-0 z-100 mt-2 overflow-hidden rounded-2xl border border-white/10 bg-black/95 shadow-[0_25px_80px_rgba(0,0,0,0.9)] backdrop-blur-2xl"
 						>
 							{#if loading}
 								<div class="flex items-center gap-2 px-4 py-4 text-sm text-white/60">
 									<Search size={15} class="animate-pulse" />
 
-									<span> Searching... </span>
+									<span>Searching...</span>
 								</div>
 							{:else if searchResults.length === 0}
 								<div class="px-4 py-4 text-sm text-white/60">No results found</div>
@@ -505,7 +543,7 @@
 									<button
 										type="button"
 										onclick={() => handleSelect(item)}
-										class="group flex w-full items-center gap-3 border-b border-white/5 px-3 py-3 text-left transition-colors hover:bg-white/5"
+										class="group flex w-full cursor-pointer items-center gap-3 border-b border-white/5 px-3 py-3 text-left transition-colors hover:bg-white/5"
 									>
 										<img
 											src={item.poster
@@ -541,12 +579,14 @@
 									</button>
 								{/each}
 
+								<!-- VIEW ALL -->
+
 								<button
 									type="button"
 									onclick={viewAllResults}
-									class="group flex w-full items-center justify-center gap-2 bg-white/5 px-4 py-3 text-center text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+									class="group flex w-full cursor-pointer items-center justify-center gap-2 bg-white/5 px-4 py-3 text-center text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
 								>
-									<span> View all results </span>
+									<span>View all results</span>
 
 									<ArrowRight
 										size={15}
@@ -561,7 +601,7 @@
 
 				<!-- ====================================================
                      MOBILE NAVIGATION
-                ================================================= -->
+                ===================================================== -->
 
 				<nav class="flex flex-col gap-1" aria-label="Mobile navigation">
 					<!-- HOME -->
@@ -569,7 +609,7 @@
 					<button
 						type="button"
 						onclick={() => navigateTo('/')}
-						class={`flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-left text-sm transition-all duration-200 ${
+						class={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3.5 text-left text-sm transition-all duration-200 ${
 							isActive('/')
 								? 'bg-white/10 text-white'
 								: 'text-white/65 hover:bg-white/5 hover:text-white'
@@ -577,7 +617,7 @@
 					>
 						<House size={18} strokeWidth={1.8} />
 
-						<span class="flex-1"> Home </span>
+						<span class="flex-1">Home</span>
 
 						{#if isActive('/')}
 							<span class="h-1.5 w-1.5 rounded-full bg-white"></span>
@@ -589,7 +629,7 @@
 					<button
 						type="button"
 						onclick={() => navigateTo('/movies')}
-						class={`flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-left text-sm transition-all duration-200 ${
+						class={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3.5 text-left text-sm transition-all duration-200 ${
 							isActive('/movies')
 								? 'bg-white/10 text-white'
 								: 'text-white/65 hover:bg-white/5 hover:text-white'
@@ -597,7 +637,7 @@
 					>
 						<Clapperboard size={18} strokeWidth={1.8} />
 
-						<span class="flex-1"> Movies </span>
+						<span class="flex-1">Movies</span>
 
 						{#if isActive('/movies')}
 							<span class="h-1.5 w-1.5 rounded-full bg-white"></span>
@@ -609,7 +649,7 @@
 					<button
 						type="button"
 						onclick={() => navigateTo('/series')}
-						class={`flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-left text-sm transition-all duration-200 ${
+						class={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-3.5 text-left text-sm transition-all duration-200 ${
 							isActive('/series')
 								? 'bg-white/10 text-white'
 								: 'text-white/65 hover:bg-white/5 hover:text-white'
@@ -617,7 +657,7 @@
 					>
 						<Tv size={18} strokeWidth={1.8} />
 
-						<span class="flex-1"> Series </span>
+						<span class="flex-1">Series</span>
 
 						{#if isActive('/series')}
 							<span class="h-1.5 w-1.5 rounded-full bg-white"></span>

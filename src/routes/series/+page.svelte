@@ -39,7 +39,7 @@
 
 	let observer: IntersectionObserver | null = null;
 
-	let sentinel: HTMLDivElement | null = null;
+	let sentinel = $state<HTMLDivElement | null>(null);
 
 	let requestInFlight = false;
 
@@ -354,7 +354,7 @@
          MAIN CONTAINER
     ====================================================================== -->
 
-	<div class="mx-auto w-full max-w-[1800px] px-4 sm:px-6 md:px-10 lg:px-16">
+	<div class="mx-auto w-full max-w-450 px-4 sm:px-6 md:px-10 lg:px-16">
 		<!-- =================================================================
      HEADER
 ================================================================== -->
@@ -627,7 +627,7 @@
 
 			{#if error && series.length > 0}
 				<div
-					class="mt-10 flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-8 text-center"
+					class="mt-10 flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/3 px-6 py-8 text-center"
 					aria-live="polite"
 				>
 					<p class="text-sm text-white/50">

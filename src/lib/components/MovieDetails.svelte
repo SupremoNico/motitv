@@ -29,11 +29,11 @@
 		return imageUrl(path, 'w185');
 	};
 
-	const year = movie.release_date ? movie.release_date.slice(0, 4) : 'N/A';
+	const year = $derived(movie.release_date ? movie.release_date.slice(0, 4) : 'N/A');
 
-	const rating = Number(movie.vote_average ?? 0).toFixed(1);
+	const rating = $derived(Number(movie.vote_average ?? 0).toFixed(1));
 
-	const runtime = movie.runtime ? formatRuntime(movie.runtime) : 'N/A';
+	const runtime = $derived(movie.runtime ? formatRuntime(movie.runtime) : 'N/A');
 </script>
 
 <!-- ========================= -->
@@ -48,7 +48,7 @@
 
 		{#if showTrailer && trailerKey}
 			<div
-				class="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 backdrop-blur-md sm:p-6"
+				class="fixed inset-0 z-100 flex items-center justify-center bg-black/95 p-4 backdrop-blur-md sm:p-6"
 				role="dialog"
 				aria-modal="true"
 				aria-label={`${movie.title} trailer`}
@@ -266,7 +266,7 @@
 				<div class="flex flex-wrap gap-3 sm:gap-4">
 					{#each directors as director (director.id)}
 						<div
-							class="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 transition duration-200 hover:border-white/20 hover:bg-white/[0.08] sm:px-4"
+							class="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/4 px-3 py-3 transition duration-200 hover:border-white/20 hover:bg-white/8 sm:px-4"
 						>
 							<!-- Profile -->
 							<img
@@ -278,7 +278,7 @@
 
 							<!-- Info -->
 							<div class="min-w-0">
-								<p class="max-w-[180px] truncate text-sm font-semibold text-white">
+								<p class="max-w-45 truncate text-sm font-semibold text-white">
 									{director.name}
 								</p>
 
@@ -307,7 +307,7 @@
 				>
 					{#each cast as actor (actor.id)}
 						<div
-							class="group overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] transition duration-200 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.08]"
+							class="group overflow-hidden rounded-xl border border-white/10 bg-white/4 transition duration-200 hover:-translate-y-1 hover:border-white/20 hover:bg-white/8"
 						>
 							<!-- Profile -->
 							<div class="relative aspect-square overflow-hidden bg-zinc-900">

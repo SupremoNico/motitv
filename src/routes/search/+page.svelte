@@ -191,14 +191,14 @@
 
 		<section class="mb-10">
 			<div
-				class="relative overflow-hidden rounded-3xl border border-white/[0.07] bg-white/[0.025] px-6 py-8 sm:px-8 sm:py-10"
+				class="relative overflow-hidden rounded-3xl border border-white/[0.07] bg-white/2.5 px-6 py-8 sm:px-8 sm:py-10"
 			>
 				<div
 					class="pointer-events-none absolute -top-32 -right-32 h-72 w-72 rounded-full bg-white/[0.035] blur-3xl"
 				></div>
 
 				<div
-					class="pointer-events-none absolute -bottom-32 -left-32 h-72 w-72 rounded-full bg-white/[0.025] blur-3xl"
+					class="pointer-events-none absolute -bottom-32 -left-32 h-72 w-72 rounded-full bg-white/2.5 blur-3xl"
 				></div>
 
 				<div class="relative">
@@ -237,10 +237,10 @@
 
 		{#if !query}
 			<section
-				class="flex min-h-[400px] flex-col items-center justify-center rounded-3xl border border-white/[0.06] bg-white/[0.02] px-6 text-center"
+				class="flex min-h-100 flex-col items-center justify-center rounded-3xl border border-white/6 bg-white/2 px-6 text-center"
 			>
 				<div
-					class="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]"
+					class="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/4"
 				>
 					<Search size={26} class="text-white/25" />
 				</div>
@@ -263,12 +263,12 @@
 					{#each skeletons as skeleton (skeleton)}
 						<div class="animate-pulse">
 							<div
-								class="aspect-[2/3] rounded-2xl border border-white/[0.06] bg-white/[0.04]"
+								class="aspect-2/3 rounded-2xl border border-white/6 bg-white/4"
 							></div>
 
-							<div class="mt-3 h-4 w-4/5 rounded bg-white/[0.06]"></div>
+							<div class="mt-3 h-4 w-4/5 rounded bg-white/6"></div>
 
-							<div class="mt-2 h-3 w-2/5 rounded bg-white/[0.04]"></div>
+							<div class="mt-2 h-3 w-2/5 rounded bg-white/4"></div>
 						</div>
 					{/each}
 				</div>
@@ -510,10 +510,10 @@
 
 			{#if !loading && results.length === 0}
 				<section
-					class="flex min-h-[400px] flex-col items-center justify-center rounded-3xl border border-white/[0.06] bg-white/[0.02] px-6 text-center"
+					class="flex min-h-100 flex-col items-center justify-center rounded-3xl border border-white/6 bg-white/2 px-6 text-center"
 				>
 					<div
-						class="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]"
+						class="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/4"
 					>
 						<Search size={26} class="text-white/25" />
 					</div>

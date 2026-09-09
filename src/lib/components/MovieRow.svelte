@@ -28,7 +28,7 @@
 
 		<div class="scrollbar-none flex gap-5 overflow-x-auto pb-4">
 			{#each movies as movie (movie.id)}
-				<article class="group w-[180px] shrink-0 md:w-[220px] lg:w-[240px]">
+				<article class="group w-45 shrink-0 md:w-55 lg:w-60">
 					<button
 						type="button"
 						onclick={() => openMovie(movie.id)}
