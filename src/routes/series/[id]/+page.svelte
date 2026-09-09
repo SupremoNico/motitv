@@ -10,24 +10,30 @@
 
 	import type { SeriesDetails, CastMember, CrewMember } from '$lib/tmdb';
 
-	import { ChevronDown, ChevronLeft, ChevronRight, Play, Check } from 'lucide-svelte';
+	import {
+		ChevronDown,
+		ChevronLeft,
+		ChevronRight,
+		Play,
+		Check,
+		AlertCircle,
+		LoaderCircle,
+		Home
+	} from 'lucide-svelte';
 
-	// ============================================================
+	// =========================================================
 	// STATE
-	// ============================================================
+	// =========================================================
 
 	let series = $state<SeriesDetails | null>(null);
 
 	let cast = $state<CastMember[]>([]);
-
 	let creators = $state<CrewMember[]>([]);
 
 	let trailerKey = $state<string | null>(null);
-
 	let showTrailer = $state(false);
 
 	let season = $state(1);
-
 	let episode = $state(1);
 
 	let episodes = $state<
@@ -41,34 +47,21 @@
 	>([]);
 
 	let loading = $state(true);
-
 	let error = $state<string | null>(null);
-
 	let seasonLoading = $state(false);
 
-	// ============================================================
-	// DROPDOWN STATE
-	// ============================================================
-
-	let openDropdown = $state<'season' | 'episode' | null>(null);
-
-	// ============================================================
-	// ROUTE ID
-	// ============================================================
+	// One selector for both mobile + desktop
+	let episodeMenuOpen = $state(false);
 
 	const id = $derived($page.params.id);
 
-	// ============================================================
-	// REQUEST TRACKING
-	// ============================================================
-
+	// Prevent stale requests from updating the page
 	let requestId = 0;
-
 	let seasonRequestId = 0;
 
-	// ============================================================
+	// =========================================================
 	// IMAGE HELPERS
-	// ============================================================
+	// =========================================================
 
 	const imageUrl = (path: string | null, size = 'w185') =>
 		path ? `https://image.tmdb.org/t/p/${size}${path}` : '/placeholder.jpg';
@@ -76,21 +69,22 @@
 	const backdropUrl = (path: string | null) =>
 		path ? `https://image.tmdb.org/t/p/original${path}` : '';
 
-	// ============================================================
+	// =========================================================
 	// CURRENT EPISODE
-	// ============================================================
+	// =========================================================
 
 	const currentEpisode = $derived(episodes.find((item) => item.episode_number === episode) ?? null);
 
-	// ============================================================
+	// =========================================================
 	// LOAD SERIES
-	// ============================================================
+	// =========================================================
 
 	async function loadSeries(seriesId: string) {
 		const currentRequest = ++requestId;
 
 		loading = true;
 		error = null;
+		episodeMenuOpen = false;
 
 		try {
 			const [seriesData, credits, videos] = await Promise.all([
@@ -115,21 +109,16 @@
 				(crew: CrewMember) => crew.job === 'Creator' || crew.job === 'Executive Producer'
 			);
 
-			const trailer = videos.results.find(
-				(video) => video.type === 'Trailer' && video.site === 'YouTube'
+			const trailer = videos.results?.find(
+				(video) => video.site === 'YouTube' && video.type === 'Trailer'
 			);
 
 			trailerKey = trailer?.key ?? null;
-
-			// ========================================================
-			// FIRST REGULAR SEASON
-			// ========================================================
 
 			const firstSeason =
 				seriesData.seasons?.find((item) => item.season_number > 0)?.season_number ?? 1;
 
 			season = firstSeason;
-
 			episode = 1;
 
 			loading = false;
@@ -140,29 +129,26 @@
 
 			console.error('Failed to load series:', err);
 
-			series = null;
+			error = err instanceof Error ? err.message : 'Failed to load series.';
 
 			loading = false;
-
-			error = err instanceof Error ? err.message : 'Failed to load series.';
 		}
 	}
 
-	// ============================================================
+	// =========================================================
 	// LOAD SEASON
-	// ============================================================
+	// =========================================================
 
 	async function loadSeason(seriesId: string, seasonNumber: number) {
 		const currentRequest = ++seasonRequestId;
 
 		seasonLoading = true;
-
-		// Close dropdowns while changing season.
-		openDropdown = null;
+		episodeMenuOpen = false;
 
 		try {
 			const data = await getSeasonDetails(seriesId, seasonNumber);
 
+			// Ignore stale request
 			if (currentRequest !== seasonRequestId) {
 				return;
 			}
@@ -174,8 +160,6 @@
 			} else {
 				episode = 1;
 			}
-
-			seasonLoading = false;
 		} catch (err) {
 			if (currentRequest !== seasonRequestId) {
 				return;
@@ -184,76 +168,77 @@
 			console.error('Failed to load season:', err);
 
 			episodes = [];
-
 			episode = 1;
-
-			seasonLoading = false;
+		} finally {
+			if (currentRequest === seasonRequestId) {
+				seasonLoading = false;
+			}
 		}
 	}
 
-	// ============================================================
-	// LOAD DATA WHEN ROUTE CHANGES
-	// ============================================================
+	// =========================================================
+	// EFFECTS
+	// =========================================================
 
 	$effect(() => {
-		if (!id) {
-			return;
-		}
+		if (!id) return;
 
 		loadSeries(id);
 	});
 
 	$effect(() => {
-		if (!id || !season || !series) {
-			return;
-		}
+		if (!id || !season || !series) return;
 
 		loadSeason(id, season);
 	});
 
-	// ============================================================
-	// DROPDOWN
-	// ============================================================
+	// =========================================================
+	// SEASON / EPISODE MENU
+	// =========================================================
 
-	function toggleDropdown(type: 'season' | 'episode') {
-		if (type === 'episode' && (seasonLoading || episodes.length === 0)) {
+	function toggleEpisodeMenu() {
+		if (seasonLoading || episodes.length === 0) {
 			return;
 		}
 
-		openDropdown = openDropdown === type ? null : type;
+		episodeMenuOpen = !episodeMenuOpen;
 	}
 
 	function selectSeason(value: number) {
 		if (value === season) {
-			openDropdown = null;
 			return;
 		}
 
 		season = value;
 
+		// Start from episode 1 while new season loads
 		episode = 1;
 
-		openDropdown = null;
+		// Keep menu open so the user can see the new episodes
+		episodeMenuOpen = true;
 	}
 
 	function selectEpisode(value: number) {
 		episode = value;
-
-		openDropdown = null;
+		episodeMenuOpen = false;
 	}
 
-	function closeDropdowns() {
-		openDropdown = null;
+	function closeEpisodeMenu() {
+		episodeMenuOpen = false;
 	}
 
-	// ============================================================
-	// PREVIOUS EPISODE
-	// ============================================================
+	// =========================================================
+	// EPISODE NAVIGATION
+	// =========================================================
+
+	function firstEpisode() {
+		if (episodes.length === 0) return;
+
+		episode = episodes[0].episode_number;
+	}
 
 	function previousEpisode() {
-		if (episodes.length === 0) {
-			return;
-		}
+		if (episodes.length === 0) return;
 
 		const currentIndex = episodes.findIndex((item) => item.episode_number === episode);
 
@@ -262,14 +247,8 @@
 		}
 	}
 
-	// ============================================================
-	// NEXT EPISODE
-	// ============================================================
-
 	function nextEpisode() {
-		if (episodes.length === 0) {
-			return;
-		}
+		if (episodes.length === 0) return;
 
 		const currentIndex = episodes.findIndex((item) => item.episode_number === episode);
 
@@ -280,9 +259,15 @@
 		episode = episodes[currentIndex + 1].episode_number;
 	}
 
-	// ============================================================
+	function lastEpisode() {
+		if (episodes.length === 0) return;
+
+		episode = episodes[episodes.length - 1].episode_number;
+	}
+
+	// =========================================================
 	// TRAILER
-	// ============================================================
+	// =========================================================
 
 	function openTrailer() {
 		showTrailer = true;
@@ -292,382 +277,334 @@
 		showTrailer = false;
 	}
 
-	// ============================================================
+	// =========================================================
 	// RETRY
-	// ============================================================
+	// =========================================================
 
 	function retry() {
-		if (!id) {
-			return;
-		}
+		if (!id) return;
 
 		loadSeries(id);
 	}
 
-	// ============================================================
+	// =========================================================
 	// HOME
-	// ============================================================
+	// =========================================================
 
 	function goHome() {
 		goto(resolve('/'));
 	}
 </script>
 
-<!-- ============================================================
-     CLOSE DROPDOWNS WHEN CLICKING OUTSIDE
-============================================================= -->
-
-<svelte:window onclick={closeDropdowns} />
-
-<!-- ============================================================
-     NAVBAR
-============================================================= -->
+<!-- Close selector when clicking outside -->
+<svelte:window onclick={closeEpisodeMenu} />
 
 {#if !showTrailer}
 	<Navbar />
 {/if}
 
-<!-- ============================================================
+<!-- =========================================================
      LOADING
-============================================================= -->
+========================================================= -->
 
 {#if loading}
 	<div class="min-h-screen bg-black text-white">
-		<div class="relative min-h-screen">
-			<div class="absolute inset-0 bg-zinc-950"></div>
+		<div class="mx-auto w-full max-w-7xl px-3 pt-24 sm:px-5 lg:px-8">
+			<!-- Controls skeleton -->
+			<div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+				<div class="h-11 w-full animate-pulse rounded-xl bg-white/5 sm:w-[360px]"></div>
 
-			<div class="relative z-10 mx-auto max-w-7xl px-4 pt-24 sm:px-6 lg:px-8">
-				<div class="overflow-hidden rounded-xl border border-white/10 bg-zinc-900 shadow-2xl">
-					<div class="aspect-video w-full animate-pulse bg-zinc-800"></div>
+				<div class="grid grid-cols-5 gap-1.5 sm:flex">
+					{#each Array.from({ length: 5 }, (_, index) => index) as index (index)}
+						<div class="h-10 animate-pulse rounded-lg bg-white/5 sm:w-10"></div>
+					{/each}
 				</div>
+			</div>
 
-				<div class="mt-10 space-y-5">
-					<div class="h-10 w-2/3 animate-pulse rounded-lg bg-zinc-800"></div>
+			<!-- Player skeleton -->
+			<div
+				class="aspect-video w-full animate-pulse rounded-lg border border-white/10 bg-zinc-950 sm:rounded-xl"
+			></div>
 
-					<div class="flex gap-3">
-						<div class="h-5 w-20 animate-pulse rounded bg-zinc-800"></div>
-
-						<div class="h-5 w-24 animate-pulse rounded bg-zinc-800"></div>
-
-						<div class="h-5 w-16 animate-pulse rounded bg-zinc-800"></div>
-					</div>
-
-					<div class="space-y-2">
-						<div class="h-4 w-full animate-pulse rounded bg-zinc-800"></div>
-
-						<div class="h-4 w-5/6 animate-pulse rounded bg-zinc-800"></div>
-
-						<div class="h-4 w-4/6 animate-pulse rounded bg-zinc-800"></div>
-					</div>
-				</div>
+			<!-- Details skeleton -->
+			<div class="mt-8 space-y-4">
+				<div class="h-8 w-64 animate-pulse rounded bg-white/5"></div>
+				<div class="h-4 w-full max-w-2xl animate-pulse rounded bg-white/5"></div>
+				<div class="h-4 w-3/4 max-w-2xl animate-pulse rounded bg-white/5"></div>
 			</div>
 		</div>
 	</div>
 
-	<!-- ============================================================
+	<!-- =========================================================
      ERROR
-============================================================= -->
+========================================================= -->
 {:else if error || !series}
-	<div class="min-h-screen bg-black text-white">
-		<div class="flex min-h-screen items-center justify-center px-6">
-			<div class="max-w-md text-center">
-				<div
-					class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5"
+	<div class="flex min-h-screen items-center justify-center bg-black px-5 text-white">
+		<div class="flex w-full max-w-md flex-col items-center text-center">
+			<div
+				class="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10"
+			>
+				<AlertCircle size={28} class="text-red-400" />
+			</div>
+
+			<h1 class="text-xl font-semibold">Unable to load series</h1>
+
+			<p class="mt-2 text-sm leading-relaxed text-zinc-500">
+				{error || 'Something went wrong while loading this series.'}
+			</p>
+
+			<div class="mt-6 flex items-center gap-2">
+				<button
+					type="button"
+					onclick={retry}
+					class="flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-black transition hover:bg-zinc-200"
 				>
-					<svg
-						class="h-8 w-8 text-white/60"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12V12z"
-						/>
-					</svg>
-				</div>
+					<LoaderCircle size={15} />
+					Retry
+				</button>
 
-				<h1 class="text-2xl font-semibold">Unable to load series</h1>
-
-				<p class="mt-2 text-sm text-white/50">
-					{error ?? 'The series could not be found.'}
-				</p>
-
-				<div class="mt-6 flex items-center justify-center gap-3">
-					<button
-						type="button"
-						onclick={retry}
-						class="cursor-pointer rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-white/90"
-					>
-						Try again
-					</button>
-
-					<button
-						type="button"
-						onclick={goHome}
-						class="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
-					>
-						Go home
-					</button>
-				</div>
+				<button
+					type="button"
+					onclick={goHome}
+					class="flex h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 text-sm font-medium text-white transition hover:bg-white/10"
+				>
+					<Home size={15} />
+					Home
+				</button>
 			</div>
 		</div>
 	</div>
 
-	<!-- ============================================================
-     MAIN SERIES PAGE
-============================================================= -->
+	<!-- =========================================================
+     SERIES
+========================================================= -->
 {:else}
 	<div
 		class="relative min-h-screen bg-black bg-cover bg-center bg-no-repeat text-white"
 		style={`background-image: url(${backdropUrl(series.backdrop_path)})`}
 	>
-		<!-- Backdrop -->
+		<!-- Background overlays -->
 		<div class="absolute inset-0 bg-black/75"></div>
 
-		<!-- Blur -->
 		<div class="absolute inset-0 bg-black/40 backdrop-blur-2xl"></div>
 
-		<!-- Bottom gradient -->
 		<div
 			class="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black via-black/80 to-transparent"
 		></div>
 
 		<div class="relative z-10">
-			<!-- ====================================================
-                 PLAYER
-            ===================================================== -->
+			<!-- =================================================
+                 PLAYER SECTION
+            ================================================= -->
 
-			<section class="mx-auto max-w-7xl px-4 pt-24 sm:px-6 lg:px-8" aria-label="Series player">
-				<!-- ====================================================
-                     SEASON / EPISODE SELECTOR
-                ===================================================== -->
+			<section
+				class="relative z-10 mx-auto w-full max-w-7xl px-3 pt-24 sm:px-5 sm:pt-24 lg:px-8"
+				aria-label="Series player"
+			>
+				<!-- =================================================
+         TOP CONTROLS
+    ================================================= -->
 
-				<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-					<!-- ==================================================
-                         LEFT SIDE
-                    =================================================== -->
+				<div
+					class="mb-3 flex w-full flex-col gap-3 sm:mb-4 lg:flex-row lg:items-center lg:justify-between"
+				>
+					<!-- =================================================
+             COMBINED SEASON + EPISODE SELECTOR
+             Mobile + Tablet + Desktop
+        ================================================= -->
 
-					<div class="flex flex-wrap items-center gap-2">
-						<!-- ==================================================
-                             SEASON DROPDOWN
-                        =================================================== -->
-
-						<div class="relative" onclick={(event) => event.stopPropagation()}>
+					<div class="relative z-50 w-full lg:w-auto">
+						<div class="relative w-full lg:w-auto" onclick={(event) => event.stopPropagation()}>
+							<!-- Main selector button -->
 							<button
 								type="button"
-								onclick={() => toggleDropdown('season')}
-								class="flex h-10 min-w-[130px] cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/80 px-4 text-sm font-medium text-white shadow-lg backdrop-blur-xl transition-all duration-200 hover:border-white/25 hover:bg-white/10 focus:border-white/30 focus:outline-none"
-								aria-haspopup="listbox"
-								aria-expanded={openDropdown === 'season'}
-							>
-								<span>
-									Season {season}
-								</span>
-
-								<ChevronDown
-									size={15}
-									strokeWidth={2}
-									class={`text-white/50 transition-transform duration-200 ${
-										openDropdown === 'season' ? 'rotate-180' : ''
-									}`}
-								/>
-							</button>
-
-							<!-- ==================================================
-                                 SEASON MENU
-                            =================================================== -->
-
-							{#if openDropdown === 'season'}
-								<div
-									class="absolute top-[calc(100%+8px)] left-0 z-[100] min-w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.65)] backdrop-blur-2xl"
-									role="listbox"
-								>
-									{#each series.seasons?.filter((item) => item.season_number > 0) ?? [] as item (item.season_number)}
-										<button
-											type="button"
-											role="option"
-											aria-selected={item.season_number === season}
-											onclick={() => selectSeason(item.season_number)}
-											class={item.season_number === season
-												? 'flex w-full cursor-pointer items-center justify-between rounded-xl bg-white/10 px-3 py-2.5 text-left text-sm text-white transition-colors duration-150 hover:bg-white/15'
-												: 'flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm text-zinc-400 transition-colors duration-150 hover:bg-white/10 hover:text-white'}
-										>
-											<span>
-												Season {item.season_number}
-											</span>
-
-											{#if item.season_number === season}
-												<Check size={15} strokeWidth={2.5} class="shrink-0 text-white" />
-											{/if}
-										</button>
-									{/each}
-								</div>
-							{/if}
-						</div>
-
-						<!-- ==================================================
-                             EPISODE DROPDOWN
-                        =================================================== -->
-
-						<div class="relative" onclick={(event) => event.stopPropagation()}>
-							<button
-								type="button"
+								onclick={toggleEpisodeMenu}
 								disabled={seasonLoading || episodes.length === 0}
-								onclick={() => toggleDropdown('episode')}
-								class="flex h-10 w-[190px] max-w-[calc(100vw-2rem)] cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/80 px-4 text-sm font-medium text-white shadow-lg backdrop-blur-xl transition-all duration-200 hover:border-white/25 hover:bg-white/10 focus:border-white/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
-								aria-haspopup="listbox"
-								aria-expanded={openDropdown === 'episode'}
+								class="flex h-11 w-full min-w-0 cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/80 px-4 text-sm font-medium text-white shadow-lg backdrop-blur-xl transition-all duration-200 hover:border-white/25 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[320px] lg:min-w-[400px]"
+								aria-haspopup="menu"
+								aria-expanded={episodeMenuOpen}
 							>
-								<span class="min-w-0 truncate">
-									{#if seasonLoading}
-										Loading episodes...
-									{:else if episodes.length === 0}
-										No episodes
-									{:else if currentEpisode}
-										<span class="text-zinc-400">
-											EP
-											{currentEpisode.episode_number}
-										</span>
+								<div class="flex min-w-0 items-center gap-2">
+									<Play
+										size={14}
+										strokeWidth={2}
+										fill="currentColor"
+										class="shrink-0 text-white/60"
+									/>
 
-										<span class="ml-1 text-white">
-											{currentEpisode.name || `Episode ${currentEpisode.episode_number}`}
-										</span>
-									{:else}
-										Episode {episode}
-									{/if}
-								</span>
+									<span class="min-w-0 truncate">
+										{#if seasonLoading}
+											Loading episodes...
+										{:else if episodes.length === 0}
+											No episodes
+										{:else if currentEpisode}
+											S{season}
+											· EP
+											{currentEpisode.episode_number}
+
+											<span class="text-white/50">
+												· {currentEpisode.name || `Episode ${currentEpisode.episode_number}`}
+											</span>
+										{:else}
+											Season {season}
+											· Episode {episode}
+										{/if}
+									</span>
+								</div>
 
 								<ChevronDown
-									size={15}
+									size={16}
 									strokeWidth={2}
 									class={`shrink-0 text-white/50 transition-transform duration-200 ${
-										openDropdown === 'episode' ? 'rotate-180' : ''
+										episodeMenuOpen ? 'rotate-180' : ''
 									}`}
 								/>
 							</button>
 
-							<!-- ==================================================
-                                 EPISODE MENU
-                            =================================================== -->
+							<!-- =================================================
+                     COMBINED SEASON + EPISODE MENU
+                ================================================= -->
 
-							{#if openDropdown === 'episode' && episodes.length > 0}
+							{#if episodeMenuOpen && episodes.length > 0}
 								<div
-									class="absolute top-[calc(100%+8px)] left-0 z-[100] w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-[0_20px_60px_rgba(0,0,0,0.65)] backdrop-blur-2xl"
-									role="listbox"
+									class="absolute top-[calc(100%+8px)] left-0 z-[999] w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/98 shadow-[0_20px_60px_rgba(0,0,0,0.75)] backdrop-blur-2xl sm:w-[420px] lg:w-[480px]"
+									role="menu"
+									onclick={(event) => event.stopPropagation()}
 								>
-									<!-- Episode list -->
+									<!-- =================================================
+                             SEASON SELECTOR
+                        ================================================= -->
 
-									<div class="max-h-[480px] overflow-y-auto p-1.5">
+									<div class="border-b border-white/10 p-3">
+										<div
+											class="mb-2 text-[10px] font-semibold tracking-widest text-white/40 uppercase"
+										>
+											Season
+										</div>
+
+										<div class="flex gap-2 overflow-x-auto pb-1">
+											{#each series.seasons?.filter((item) => item.season_number > 0) ?? [] as item (item.season_number)}
+												<button
+													type="button"
+													onclick={() => selectSeason(item.season_number)}
+													class={item.season_number === season
+														? 'shrink-0 cursor-pointer rounded-lg bg-white px-3 py-2 text-xs font-semibold text-black transition-colors'
+														: 'shrink-0 cursor-pointer rounded-lg bg-white/5 px-3 py-2 text-xs font-medium text-zinc-400 transition-colors hover:bg-white/10 hover:text-white'}
+												>
+													S{item.season_number}
+												</button>
+											{/each}
+										</div>
+									</div>
+
+									<!-- =================================================
+                             EPISODE HEADER
+                        ================================================= -->
+
+									<div class="border-b border-white/10 px-3 py-2.5">
+										<div class="flex items-center justify-between">
+											<div
+												class="text-[10px] font-semibold tracking-widest text-white/40 uppercase"
+											>
+												Episodes
+											</div>
+
+											<div class="text-[10px] text-white/30">
+												{episodes.length}
+												{episodes.length === 1 ? 'episode' : 'episodes'}
+											</div>
+										</div>
+									</div>
+
+									<!-- =================================================
+                             EPISODE LIST
+                        ================================================= -->
+
+									<div class="max-h-[55vh] overflow-y-auto p-2 sm:max-h-[500px]">
 										{#each episodes as item (item.episode_number)}
 											<button
 												type="button"
-												role="option"
-												aria-selected={item.episode_number === episode}
+												role="menuitem"
 												onclick={() => selectEpisode(item.episode_number)}
 												class={item.episode_number === episode
-													? 'flex w-full cursor-pointer gap-3 rounded-xl bg-white/10 p-2 text-left transition-colors duration-150 hover:bg-white/15'
-													: 'flex w-full cursor-pointer gap-3 rounded-xl p-2 text-left transition-colors duration-150 hover:bg-white/10'}
+													? 'flex w-full min-w-0 cursor-pointer gap-3 rounded-xl bg-white/10 p-2 text-left transition-colors'
+													: 'flex w-full min-w-0 cursor-pointer gap-3 rounded-xl p-2 text-left transition-colors hover:bg-white/5'}
 											>
-												<!-- ==================================
-             THUMBNAIL
-        =================================== -->
-
+												<!-- Episode thumbnail -->
 												<div
-													class="relative h-[76px] w-[120px] shrink-0 overflow-hidden rounded-lg bg-zinc-900 sm:h-[82px] sm:w-[130px]"
+													class="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-900 sm:h-20 sm:w-32"
 												>
 													{#if item.still_path}
 														<img
 															src={imageUrl(item.still_path, 'w300')}
 															alt={item.name || `Episode ${item.episode_number}`}
-															class="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+															class="h-full w-full object-cover"
 															loading="lazy"
 														/>
 													{:else}
 														<div
-															class="flex h-full w-full items-center justify-center bg-zinc-900 text-zinc-600"
+															class="flex h-full w-full items-center justify-center text-zinc-600"
 														>
-															<Play size={22} />
+															<Play size={18} />
 														</div>
 													{/if}
 
-													<!-- Dark image gradient -->
 													<div
 														class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"
 													></div>
 
-													<!-- Episode number -->
 													<div
-														class="absolute bottom-1.5 left-1.5 rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm"
+														class="absolute bottom-1 left-1 rounded bg-black/80 px-1.5 py-0.5 text-[9px] font-semibold text-white"
 													>
-														EP {item.episode_number}
+														EP
+														{item.episode_number}
 													</div>
 
-													<!-- Playing overlay -->
 													{#if item.episode_number === episode}
 														<div
 															class="absolute inset-0 flex items-center justify-center bg-black/40"
 														>
 															<div
-																class="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black shadow-lg"
+																class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-black shadow-lg"
 															>
-																<Play size={14} fill="currentColor" strokeWidth={0} />
+																<Play size={11} fill="currentColor" strokeWidth={0} />
 															</div>
 														</div>
 													{/if}
 												</div>
 
-												<!-- ==================================
-             EPISODE INFORMATION
-        =================================== -->
-
+												<!-- Episode information -->
 												<div class="min-w-0 flex-1 py-0.5">
-													<!-- Title -->
-													<div class="flex items-start gap-2">
-														<div
-															class={item.episode_number === episode
-																? 'min-w-0 flex-1 truncate text-sm font-semibold text-white'
-																: 'min-w-0 flex-1 truncate text-sm font-medium text-zinc-200'}
-														>
-															{item.name || `Episode ${item.episode_number}`}
-														</div>
-
-														{#if item.episode_number === episode}
-															<div
-																class="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-white uppercase"
-															>
-																Playing
-															</div>
-														{/if}
+													<div
+														class={item.episode_number === episode
+															? 'truncate text-xs font-semibold text-white'
+															: 'truncate text-xs font-medium text-zinc-200'}
+													>
+														{item.name || `Episode ${item.episode_number}`}
 													</div>
 
-													<!-- Episode number -->
-													<div class="mt-0.5 text-[10px] text-zinc-600">
-														Episode {item.episode_number}
+													<div class="mt-1 text-[10px] text-zinc-600">
+														Episode
+														{item.episode_number}
 													</div>
 
-													<!-- Air date -->
 													{#if item.air_date}
-														<div class="mt-1 text-[11px] text-zinc-500">
+														<div class="mt-1 text-[10px] text-zinc-500">
 															{item.air_date}
 														</div>
 													{/if}
 
-													<!-- Overview -->
 													{#if item.overview}
-														<p
-															class="mt-1.5 line-clamp-2 text-[11px] leading-relaxed text-zinc-500"
-														>
+														<p class="mt-1 line-clamp-2 text-[10px] leading-relaxed text-zinc-500">
 															{item.overview}
-														</p>
-													{:else}
-														<p class="mt-1.5 text-[11px] text-zinc-600">
-															No description available.
 														</p>
 													{/if}
 												</div>
+
+												<!-- Current indicator -->
+												{#if item.episode_number === episode}
+													<Check size={15} strokeWidth={2.5} class="mt-1 shrink-0 text-white" />
+												{/if}
 											</button>
 										{/each}
 									</div>
@@ -676,78 +613,95 @@
 						</div>
 					</div>
 
-					<!-- ==================================================
-                         RIGHT SIDE
-                    =================================================== -->
+					<!-- =================================================
+             EPISODE NAVIGATION
+        ================================================= -->
 
-					<div class="flex items-center gap-2">
-						<!-- PREVIOUS -->
+					<div class="grid w-full grid-cols-5 gap-1.5 sm:flex sm:w-auto sm:items-center sm:gap-2">
+						<!-- FIRST EPISODE -->
+						<button
+							type="button"
+							onclick={firstEpisode}
+							disabled={episodes.length === 0 || episode === episodes[0]?.episode_number}
+							class="flex h-10 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/5 px-2 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30 sm:px-3"
+							title="First episode"
+						>
+							<ChevronLeft size={16} />
+							<ChevronLeft size={16} class="-ml-3" />
+						</button>
 
+						<!-- PREVIOUS EPISODE -->
 						<button
 							type="button"
 							onclick={previousEpisode}
-							disabled={episodes.length === 0 ||
-								episode === episodes[0]?.episode_number ||
-								seasonLoading}
-							class="flex h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-white/10 bg-black/80 px-3 text-sm text-white/70 backdrop-blur-xl transition-all duration-200 hover:border-white/25 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-30"
+							disabled={episodes.length === 0 || episode === episodes[0]?.episode_number}
+							class="flex h-10 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/5 px-2 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30 sm:px-3"
 							title="Previous episode"
 						>
-							<ChevronLeft size={17} strokeWidth={2} />
-
-							<span class="hidden sm:inline"> Previous </span>
+							<ChevronLeft size={17} />
 						</button>
 
-						<!-- CURRENT -->
-
+						<!-- CURRENT EPISODE -->
 						<div
-							class="flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white/70 backdrop-blur-xl"
+							class="flex h-10 min-w-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 px-2 text-xs font-semibold text-white sm:min-w-[70px] sm:px-3"
 						>
-							<Play size={14} strokeWidth={2} fill="currentColor" class="text-white/60" />
-
-							<span class="whitespace-nowrap">
-								S{season} E{episode}
-							</span>
+							S{season} · E{episode}
 						</div>
 
-						<!-- NEXT -->
-
+						<!-- NEXT EPISODE -->
 						<button
 							type="button"
 							onclick={nextEpisode}
-							disabled={seasonLoading ||
-								episodes.length === 0 ||
+							disabled={episodes.length === 0 ||
 								episode === episodes[episodes.length - 1]?.episode_number}
-							class="flex h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-white/10 bg-black/80 px-3 text-sm text-white/70 backdrop-blur-xl transition-all duration-200 hover:border-white/25 hover:bg-white/10 hover:text-white active:scale-95 disabled:pointer-events-none disabled:opacity-30"
+							class="flex h-10 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/5 px-2 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30 sm:px-3"
 							title="Next episode"
 						>
-							<span class="hidden sm:inline"> Next </span>
+							<ChevronRight size={17} />
+						</button>
 
-							<ChevronRight size={17} strokeWidth={2} />
+						<!-- LAST EPISODE -->
+						<button
+							type="button"
+							onclick={lastEpisode}
+							disabled={episodes.length === 0 ||
+								episode === episodes[episodes.length - 1]?.episode_number}
+							class="flex h-10 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/5 px-2 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30 sm:px-3"
+							title="Last episode"
+						>
+							<ChevronRight size={16} />
+							<ChevronRight size={16} class="-ml-3" />
 						</button>
 					</div>
 				</div>
 
-				<!-- ====================================================
-                     PLAYER
-                ===================================================== -->
+				<!-- =================================================
+         VIDEO PLAYER
+    ================================================= -->
 
-				<div class="overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl">
+				<div
+					class="relative z-0 w-full overflow-hidden rounded-lg border border-white/10 bg-black shadow-2xl sm:rounded-xl"
+				>
 					{#if seasonLoading}
 						<div class="relative aspect-video w-full bg-black">
-							<div class="absolute inset-0 flex items-center justify-center">
-								<div class="text-center">
-									<div
-										class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white"
-									></div>
-
-									<p class="mt-3 text-sm text-white/50">Loading episode...</p>
+							<div class="absolute inset-0 flex flex-col items-center justify-center">
+								<div
+									class="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/5"
+								>
+									<LoaderCircle size={22} class="animate-spin text-white/60" />
 								</div>
+
+								<p class="mt-4 text-sm font-medium text-white/70">
+									Loading Season {season}
+								</p>
+
+								<p class="mt-1 text-xs text-white/30">Preparing episodes...</p>
 							</div>
 						</div>
 					{:else}
 						<div class="aspect-video w-full bg-black">
 							<iframe
-								class="h-full w-full"
+								class="h-full w-full border-0"
 								src={`https://framextv.tech/embed/${series.id}/${season}/${episode}`}
 								title={`${series.name} - Season ${season}, Episode ${episode}`}
 								allow="encrypted-media; picture-in-picture; fullscreen"
@@ -759,9 +713,9 @@
 				</div>
 			</section>
 
-			<!-- ========================================================
+			<!-- =====================================================
                  SERIES DETAILS
-            ========================================================= -->
+            ===================================================== -->
 
 			<SeriesFullDetails
 				{series}
